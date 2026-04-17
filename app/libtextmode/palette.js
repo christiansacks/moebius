@@ -73,4 +73,27 @@ function has_c64_palette(palette) {
     return true;
 }
 
-module.exports = {white, bright_white, ega, c64, get_rgba, convert_ega_to_vga, convert_ega_to_style, has_ansi_palette, has_c64_palette};
+function build_palette_256() {
+    const p = [];
+    // 0-15: standard xterm/ANSI colors (8-bit, xterm order)
+    const ansi16 = [
+        {r:0,g:0,b:0}, {r:128,g:0,b:0}, {r:0,g:128,b:0}, {r:128,g:128,b:0},
+        {r:0,g:0,b:128}, {r:128,g:0,b:128}, {r:0,g:128,b:128}, {r:192,g:192,b:192},
+        {r:128,g:128,b:128}, {r:255,g:0,b:0}, {r:0,g:255,b:0}, {r:255,g:255,b:0},
+        {r:0,g:0,b:255}, {r:255,g:0,b:255}, {r:0,g:255,b:255}, {r:255,g:255,b:255}
+    ];
+    for (const c of ansi16) p.push(c);
+    // 16-231: 6x6x6 color cube
+    const lvl = [0, 95, 135, 175, 215, 255];
+    for (let r = 0; r < 6; r++)
+        for (let g = 0; g < 6; g++)
+            for (let b = 0; b < 6; b++)
+                p.push({r: lvl[r], g: lvl[g], b: lvl[b]});
+    // 232-255: grayscale ramp
+    for (let i = 0; i < 24; i++) { const v = i * 10 + 8; p.push({r:v, g:v, b:v}); }
+    return p;
+}
+
+const palette_256 = build_palette_256();
+
+module.exports = {white, bright_white, ega, c64, palette_256, get_rgba, convert_ega_to_vga, convert_ega_to_style, has_ansi_palette, has_c64_palette};

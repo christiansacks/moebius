@@ -1,4 +1,4 @@
-const {ega, c64} = require("./palette");
+const {ega, c64, palette_256} = require("./palette");
 const {Textmode, add_sauce_for_ans} = require("./textmode");
 const {cp437_to_unicode_bytes} = require("./encodings");
 
@@ -150,6 +150,8 @@ class Screen {
         this.bg = 0;
         this.fg_rgb = undefined;
         this.bg_rgb = undefined;
+        this.fg_idx = undefined;
+        this.bg_idx = undefined;
     }
 
     clear() {
@@ -190,10 +192,10 @@ class Screen {
         this.data = this.data.concat(more_data);
     }
 
-    put({fg = 7, bg = 0, code = ascii.SPACE, fg_rgb, bg_rgb} = {}) {
+    put({fg = 7, bg = 0, code = ascii.SPACE, fg_rgb, bg_rgb, fg_idx, bg_idx} = {}) {
         const i = this.y * this.columns + this.x;
         if (i >= this.data.length) this.fill(1000);
-        this.data[i] = {code, fg: ansi_to_bin_color(fg), bg: ansi_to_bin_color(bg), fg_rgb, bg_rgb};
+        this.data[i] = {code, fg: ansi_to_bin_color(fg), bg: ansi_to_bin_color(bg), fg_rgb, bg_rgb, fg_idx, bg_idx};
         this.x += 1;
         if (this.x == this.columns) this.new_line();
         if (this.y + 1 > this.rows) this.rows += 1;
@@ -207,7 +209,9 @@ class Screen {
                 fg: this.blink ? this.bg + 8 : this.bg,
                 bg: this.bold ? this.fg + 8 : this.fg,
                 fg_rgb: this.bg_rgb,
-                bg_rgb: this.fg_rgb
+                bg_rgb: this.fg_rgb,
+                fg_idx: this.bg_idx,
+                bg_idx: this.fg_idx
             });
         } else {
             this.put({
@@ -215,7 +219,9 @@ class Screen {
                 fg: this.bold ? this.fg + 8 : this.fg,
                 bg: this.blink ? this.bg + 8 : this.bg,
                 fg_rgb: this.fg_rgb,
-                bg_rgb: this.bg_rgb
+                bg_rgb: this.bg_rgb,
+                fg_idx: this.fg_idx,
+                bg_idx: this.bg_idx
             });
         }
         if (this.fg_rgb) {
@@ -370,18 +376,40 @@ class Ansi extends Textmode {
                         // case erase_line_types.CLEAR_LINE: screen.clear_line(); break;
                     }
                     break;
-                    case sequence_type.SGR:
-                    for (const value of sequence.values) {
-                        if (value >= sgr_types.CHANGE_FG_START && value <= sgr_types.CHANGE_FG_END) {
+                    case sequence_type.SGR: {
+                    const vals = sequence.values;
+                    for (let vi = 0; vi < vals.length; vi++) {
+                        const value = vals[vi];
+                        if (value === 38 && vals[vi + 1] === 5 && vi + 2 < vals.length) {
+                            const idx = vals[vi + 2];
+                            screen.fg_idx = idx;
+                            screen.fg_rgb = palette_256[idx];
+                            vi += 2;
+                        } else if (value === 48 && vals[vi + 1] === 5 && vi + 2 < vals.length) {
+                            const idx = vals[vi + 2];
+                            screen.bg_idx = idx;
+                            screen.bg_rgb = palette_256[idx];
+                            vi += 2;
+                        } else if (value === 38 && vals[vi + 1] === 2 && vi + 4 < vals.length) {
+                            screen.fg_rgb = {r: vals[vi + 2], g: vals[vi + 3], b: vals[vi + 4]};
+                            screen.fg_idx = undefined;
+                            vi += 4;
+                        } else if (value === 48 && vals[vi + 1] === 2 && vi + 4 < vals.length) {
+                            screen.bg_rgb = {r: vals[vi + 2], g: vals[vi + 3], b: vals[vi + 4]};
+                            screen.bg_idx = undefined;
+                            vi += 4;
+                        } else if (value >= sgr_types.CHANGE_FG_START && value <= sgr_types.CHANGE_FG_END) {
                             screen.fg = value - sgr_types.CHANGE_FG_START;
                             screen.fg_rgb = undefined;
+                            screen.fg_idx = undefined;
                         } else if (value >= sgr_types.CHANGE_BG_START && value <= sgr_types.CHANGE_BG_END) {
                             screen.bg = value - sgr_types.CHANGE_BG_START;
                             screen.bg_rgb = undefined;
+                            screen.bg_idx = undefined;
                         } else {
                             switch (value) {
                                 case sgr_types.RESET_ATTRIBUTES: screen.reset_attributes(); break;
-                                case sgr_types.BOLD_ON: screen.bold = true; screen.fg_rgb = undefined; break;
+                                case sgr_types.BOLD_ON: screen.bold = true; screen.fg_rgb = undefined; screen.fg_idx = undefined; break;
                                 case sgr_types.BLINK_ON: screen.blink = true; break;
                                 case sgr_types.INVERSE_ON: screen.inverse = true; break;
                                 case sgr_types.BOLD_OFF:
@@ -394,6 +422,7 @@ class Ansi extends Textmode {
                         }
                     }
                     break;
+                    }
                     case sequence_type.SAVE_POS: screen.save_pos(); break;
                     case sequence_type.TRUE_COLOR:
                     if (sequence.values.length >= 4) {
@@ -452,7 +481,103 @@ function clr_to_ascii(color, output) {
     }
 }
 
+function push_num(output, n) {
+    for (const c of String(n)) output.push(c.charCodeAt(0));
+}
+
+function has_extended_colors(doc) {
+    return doc.data.some(b => b.fg_rgb || b.bg_rgb || b.fg_idx !== undefined || b.bg_idx !== undefined);
+}
+
+function encode_as_ansi_extended(doc, save_without_sauce) {
+    const output = [27, 91, 48, 109]; // ESC[0m
+    let cur_fg_idx = -1, cur_bg_idx = -1;
+    let cur_fg_rgb = null, cur_bg_rgb = null;
+    const rgb_eq = (a, b) => a && b && a.r === b.r && a.g === b.g && a.b === b.b;
+
+    for (let row = 0; row < doc.rows; row++) {
+        // find last non-blank cell in row to skip trailing spaces
+        let last_col = doc.columns - 1;
+        while (last_col >= 0) {
+            const b = doc.data[row * doc.columns + last_col];
+            if (b.code !== ascii.SPACE || b.bg !== 0 || b.bg_rgb || b.bg_idx !== undefined) break;
+            last_col--;
+        }
+
+        for (let col = 0; col <= last_col; col++) {
+            let {code, fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx} = doc.data[row * doc.columns + col];
+            switch (code) {
+                case 10: code = 9; break;
+                case 13: code = 14; break;
+                case 26: code = 16; break;
+                case 27: code = 17; break;
+            }
+
+            // fg color
+            if (fg_idx !== undefined) {
+                if (fg_idx !== cur_fg_idx) {
+                    output.push(27, 91, 51, 56, 59, 53, 59); // ESC[38;5;
+                    push_num(output, fg_idx);
+                    output.push(109);
+                    cur_fg_idx = fg_idx; cur_fg_rgb = null;
+                }
+            } else if (fg_rgb) {
+                if (!rgb_eq(fg_rgb, cur_fg_rgb)) {
+                    output.push(27, 91, 51, 56, 59, 50, 59); // ESC[38;2;
+                    push_num(output, fg_rgb.r); output.push(59);
+                    push_num(output, fg_rgb.g); output.push(59);
+                    push_num(output, fg_rgb.b); output.push(109);
+                    cur_fg_rgb = fg_rgb; cur_fg_idx = -1;
+                }
+            } else {
+                const ansi_fg = bin_to_ansi_colour(fg);
+                if (ansi_fg !== cur_fg_idx) {
+                    output.push(27, 91, 51, 56, 59, 53, 59); // ESC[38;5;
+                    push_num(output, ansi_fg);
+                    output.push(109);
+                    cur_fg_idx = ansi_fg; cur_fg_rgb = null;
+                }
+            }
+
+            // bg color
+            if (bg_idx !== undefined) {
+                if (bg_idx !== cur_bg_idx) {
+                    output.push(27, 91, 52, 56, 59, 53, 59); // ESC[48;5;
+                    push_num(output, bg_idx);
+                    output.push(109);
+                    cur_bg_idx = bg_idx; cur_bg_rgb = null;
+                }
+            } else if (bg_rgb) {
+                if (!rgb_eq(bg_rgb, cur_bg_rgb)) {
+                    output.push(27, 91, 52, 56, 59, 50, 59); // ESC[48;2;
+                    push_num(output, bg_rgb.r); output.push(59);
+                    push_num(output, bg_rgb.g); output.push(59);
+                    push_num(output, bg_rgb.b); output.push(109);
+                    cur_bg_rgb = bg_rgb; cur_bg_idx = -1;
+                }
+            } else {
+                const ansi_bg = bin_to_ansi_colour(bg);
+                if (ansi_bg !== cur_bg_idx) {
+                    output.push(27, 91, 52, 56, 59, 53, 59); // ESC[48;5;
+                    push_num(output, ansi_bg);
+                    output.push(109);
+                    cur_bg_idx = ansi_bg; cur_bg_rgb = null;
+                }
+            }
+
+            output.push(code);
+        }
+
+        if (row < doc.rows - 1) output.push(13, 10); // CRLF between rows
+    }
+
+    const bytes = new Uint8Array(output);
+    if (!save_without_sauce) return add_sauce_for_ans({doc, bytes});
+    return bytes;
+}
+
 function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
+    if (!utf8 && has_extended_colors(doc)) return encode_as_ansi_extended(doc, save_without_sauce);
     let output = [27, 91, 48, 109];
     let bold = false;
     let blink = false;

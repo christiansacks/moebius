@@ -777,7 +777,7 @@ class TextModeDoc extends events.EventEmitter {
         return libtextmode.get_blocks(doc, sx, sy, dx, dy, opts);
     }
 
-    change_data(x, y, code, fg, bg, prev_cursor, cursor, mirrored = true) {
+    change_data(x, y, code, fg, bg, prev_cursor, cursor, mirrored = true, {fg_rgb, bg_rgb, fg_idx, bg_idx} = {}) {
         if (x < 0 || x >= doc.columns || y < 0 || y >= doc.rows) return;
         const i = doc.columns * y + x;
         if (prev_cursor) {
@@ -785,7 +785,7 @@ class TextModeDoc extends events.EventEmitter {
         } else {
             this.undo_history.push(x, y, doc.data[i]);
         }
-        doc.data[i] = {code, fg, bg};
+        doc.data[i] = {code, fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx};
         libtextmode.render_at(render, x, y, doc.data[i], doc.c64_background);
         if (connection) connection.draw(x, y, doc.data[i]);
         if (this.mirror_mode && mirrored) {
