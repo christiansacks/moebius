@@ -568,7 +568,7 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
             output.push(code);
         }
 
-        if (row < doc.rows - 1) output.push(13, 10); // CRLF between rows
+        if (last_col < doc.columns - 1) output.push(13, 10); // CRLF only when row truncated (auto-advance handles full rows)
     }
 
     const bytes = new Uint8Array(output);
