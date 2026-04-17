@@ -436,3 +436,44 @@ body.dark #statusbar > div > div {
 .ghosted {
     opacity: 0.3;
 }
+#color_picker_popup {
+    display: none;
+    position: fixed;
+    left: 52px;
+    z-index: 1000;
+    background-color: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 6px;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+}
+#color_picker_popup canvas {
+    display: block;
+    cursor: crosshair;
+    image-rendering: pixelated;
+}
+.picker_tooltip {
+    font-size: 11px;
+    color: #ccc;
+    font-family: monospace;
+    text-align: center;
+    margin-top: 4px;
+    min-height: 14px;
+}
+.picker_bottom {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #ccc;
+    font-family: monospace;
+}
+.picker_bottom input[type="color"] {
+    width: 24px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid #555;
+    cursor: pointer;
+    background: none;
+}

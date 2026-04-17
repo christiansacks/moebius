@@ -15,8 +15,24 @@ mouse.on("down", (x, y, half_y, is_legal) => {
     if (!enabled || !is_legal) return;
     const block = doc.at(x, y);
     tools.change_to_previous_mode();
-    palette.fg = block.fg;
-    palette.bg = block.bg;
+    if (block.fg_rgb || block.fg_idx !== undefined) {
+        if (block.fg_idx !== undefined) {
+            palette.set_extended_fg(block.fg_idx);
+        } else {
+            palette.set_truecolor_fg(block.fg_rgb.r, block.fg_rgb.g, block.fg_rgb.b);
+        }
+    } else {
+        palette.fg = block.fg;
+    }
+    if (block.bg_rgb || block.bg_idx !== undefined) {
+        if (block.bg_idx !== undefined) {
+            palette.set_extended_bg(block.bg_idx);
+        } else {
+            palette.set_truecolor_bg(block.bg_rgb.r, block.bg_rgb.g, block.bg_rgb.b);
+        }
+    } else {
+        palette.bg = block.bg;
+    }
 });
 
 mouse.on("move", (x, y, half_y, is_legal) => {

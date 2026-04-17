@@ -42,17 +42,17 @@ function half_block_line(sx, sy, dx, dy, col, skip_first) {
     }
 }
 
-function single_custom_block_line(sx, sy, dx, dy, fg, bg, skip_first = false) {
+function single_custom_block_line(sx, sy, dx, dy, fg, bg, skip_first = false, colors_ext = {}) {
     const coords = line(sx, sy, dx, dy, skip_first);
-    for (const coord of coords) doc.change_data(coord.x, coord.y, toolbar.custom_block_index, fg, bg);
+    for (const coord of coords) doc.change_data(coord.x, coord.y, toolbar.custom_block_index, fg, bg, undefined, undefined, true, colors_ext);
 }
 
-function custom_block_line(sx, sy, dx, dy, fg, bg, skip_first = false) {
+function custom_block_line(sx, sy, dx, dy, fg, bg, skip_first = false, colors_ext = {}) {
     const coords = line(sx, sy, dx, dy, skip_first);
     for (const coord of coords) {
         for (let x = -Math.floor(toolbar.brush_size / 2); x < -Math.floor(toolbar.brush_size / 2) + toolbar.brush_size; x++) {
             for (let y = -Math.floor(toolbar.brush_size / 2); y < -Math.floor(toolbar.brush_size / 2) + toolbar.brush_size; y++) {
-                doc.change_data(coord.x + x, coord.y + y, toolbar.custom_block_index, fg, bg);
+                doc.change_data(coord.x + x, coord.y + y, toolbar.custom_block_index, fg, bg, undefined, undefined, true, colors_ext);
             }
         }
     }

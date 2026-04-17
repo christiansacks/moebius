@@ -24,7 +24,8 @@ function mouse_handler(skip_first) {
         if (!enabled) return;
         if (!chunked_undo || !skip_first) doc.start_undo();
         mouse.start_drawing();
-        const {fg, bg} = palette;
+        const {fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx} = palette.draw_colors();
+        const colors_ext = {fg_rgb, bg_rgb, fg_idx, bg_idx};
         if (toolbar.mode == toolbar.modes.HALF_BLOCK) {
             if (shift_key) {
                 brushes.half_block_line(mouse.x, mouse.half_y, x, half_y, 0, skip_first);
@@ -36,7 +37,7 @@ function mouse_handler(skip_first) {
         } else {
             switch (toolbar.mode) {
                 case toolbar.modes.CUSTOM_BLOCK:
-                    brushes.custom_block_line(mouse.x, mouse.y, x, y, fg, bg, skip_first);
+                    brushes.custom_block_line(mouse.x, mouse.y, x, y, fg, bg, skip_first, colors_ext);
                     break;
                 case toolbar.modes.SHADING_BLOCK:
                     brushes.shading_block_line(mouse.x, mouse.y, x, y, fg, bg, button != mouse.buttons.LEFT, skip_first);
@@ -58,13 +59,14 @@ function mouse_handler(skip_first) {
 function mouse_up(x, y, half_y, button, single_point, shift_key) {
     if (!enabled) return;
     if (tab_held_down && single_point && last_xy != undefined) {
-        const {fg, bg} = palette;
+        const {fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx} = palette.draw_colors();
+        const colors_ext = {fg_rgb, bg_rgb, fg_idx, bg_idx};
         switch (toolbar.mode) {
             case toolbar.modes.HALF_BLOCK:
                 brushes.half_block_line(last_xy.x, last_xy.half_y, x, half_y, (button == mouse.buttons.LEFT) ? fg : bg);
                 break;
             case toolbar.modes.CUSTOM_BLOCK:
-                brushes.custom_block_line(last_xy.x, last_xy.y, x, y, fg, bg);
+                brushes.custom_block_line(last_xy.x, last_xy.y, x, y, fg, bg, false, colors_ext);
                 break;
             case toolbar.modes.SHADING_BLOCK:
                 brushes.shading_block_line(last_xy.x, last_xy.y, x, y, fg, bg, button != mouse.buttons.LEFT);
