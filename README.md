@@ -10,7 +10,7 @@ Packaged binaries are available through Github [Releases](https://github.com/chr
 * [MacOS](https://github.com/christiansacks/moebius/releases/latest/download/Moebius.dmg)
 * [Windows Installer](https://github.com/christiansacks/moebius/releases/latest/download/Moebius.Setup.exe)
 * [Windows Portable](https://github.com/christiansacks/moebius/releases/latest/download/Moebius.exe)
-* [Debian Linux](https://github.com/christiansacks/moebius/releases/latest/download/Moebius.deb)
+* [Linux AppImage](https://github.com/christiansacks/moebius/releases/latest/download/Moebius.AppImage)
 
 ## Installation & building
 ```
