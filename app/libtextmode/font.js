@@ -257,25 +257,47 @@ class Font {
         this.glyphs = this.palette.map(rgb => coloured_glyphs(this.canvas, convert_ega_to_vga(rgb)));
         this.backgrounds = this.palette.map(rgb => coloured_background(this.width, this.height, convert_ega_to_vga(rgb)));
         this.cursor = coloured_background(this.width, 2, convert_ega_to_vga(bright_white));
+        this._bg_cache = new Map();
+        this._glyph_cache = new Map();
+    }
+
+    _cached_bg(rgb) {
+        const key = `${rgb.r},${rgb.g},${rgb.b}`;
+        let canvas = this._bg_cache.get(key);
+        if (!canvas) {
+            canvas = coloured_background(this.width, this.height, rgb);
+            this._bg_cache.set(key, canvas);
+        }
+        return canvas;
+    }
+
+    _cached_glyph(code, rgb) {
+        const key = `${code},${rgb.r},${rgb.g},${rgb.b}`;
+        let canvas = this._glyph_cache.get(key);
+        if (!canvas) {
+            canvas = create_coloured_glyph({canvas: this.canvas, code, rgb, width: this.width, height: this.height});
+            this._glyph_cache.set(key, canvas);
+        }
+        return canvas;
     }
 
     draw(ctx, block, x, y, c64_background) {
         if (c64_background != undefined) {
             ctx.drawImage(this.backgrounds[c64_background], x, y);
         } else if (block.bg_rgb) {
-            ctx.drawImage(coloured_background(this.width, this.height, block.bg_rgb), x, y);
+            ctx.drawImage(this._cached_bg(block.bg_rgb), x, y);
         } else {
             ctx.drawImage(this.backgrounds[block.bg], x, y);
         }
         if (block.fg_rgb) {
-            ctx.drawImage(create_coloured_glyph({canvas: this.canvas, code: block.code, rgb: block.fg_rgb, width: this.width, height: this.height}), x, y);
+            ctx.drawImage(this._cached_glyph(block.code, block.fg_rgb), x, y);
         } else {
             ctx.drawImage(this.glyphs[block.fg], block.code * this.width, 0, this.width, this.height, x, y, this.width, this.height);
         }
     }
 
     draw_raw(ctx, block, x, y) {
-        ctx.drawImage(create_coloured_glyph({canvas: this.canvas, code: block.code, rgb: convert_ega_to_vga(white), width: this.width, height: this.height}), x, y);
+        ctx.drawImage(this._cached_glyph(block.code, convert_ega_to_vga(white)), x, y);
     }
 
     get_rgb(i) {
