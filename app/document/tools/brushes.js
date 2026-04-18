@@ -26,17 +26,17 @@ function line(x0, y0, x1, y1, skip_first = false) {
     return coords;
 }
 
-function single_half_block_line(sx, sy, dx, dy, col, skip_first) {
+function single_half_block_line(sx, sy, dx, dy, col, skip_first, col_rgb = undefined, col_idx = undefined) {
     const coords = line(sx, sy, dx, dy, skip_first);
-    for (const coord of coords) doc.set_half_block(coord.x, coord.y, col);
+    for (const coord of coords) doc.set_half_block(coord.x, coord.y, col, col_rgb, col_idx);
 }
 
-function half_block_line(sx, sy, dx, dy, col, skip_first) {
+function half_block_line(sx, sy, dx, dy, col, skip_first, col_rgb = undefined, col_idx = undefined) {
     const coords = line(sx, sy, dx, dy, skip_first);
     for (const coord of coords) {
         for (let x = -Math.floor(toolbar.brush_size / 2); x < -Math.floor(toolbar.brush_size / 2) + toolbar.brush_size; x++) {
             for (let y = -Math.floor(toolbar.brush_size / 2); y < -Math.floor(toolbar.brush_size / 2) + toolbar.brush_size; y++) {
-                doc.set_half_block(coord.x + x, coord.y + y, col);
+                doc.set_half_block(coord.x + x, coord.y + y, col, col_rgb, col_idx);
             }
         }
     }

@@ -299,12 +299,18 @@ function overwrite_mode(value) {
     send("update_menu_checkboxes", {overwrite_mode: value, insert_mode: false});
 }
 
+function extended_colors(value) {
+    send("update_menu_checkboxes", {extended_colors: value});
+}
+
 doc.on("new_document", () => {
     ice_colors(doc.ice_colors);
     use_9px_font(doc.use_9px_font);
     change_font(doc.font_name);
+    extended_colors(doc.extended_colors);
 });
 doc.on("ice_colors", (value) => ice_colors(value));
+doc.on("extended_colors", (value) => extended_colors(value));
 doc.on("use_9px_font", (value) => use_9px_font(value));
 doc.on("change_font", (font_name) => change_font(font_name));
 keyboard.on("insert", (value) => insert_mode(value));
@@ -429,7 +435,7 @@ class Toolbar extends events.EventEmitter {
 
     draw_fkey(name, code) {
         const font = doc.font;
-        const {fg, bg} = palette;
+        const {fg, bg, fg_rgb, bg_rgb} = palette.draw_colors();
         const canvas = $(name);
         canvas.width = font.width;
         canvas.height = font.height;
@@ -437,7 +443,7 @@ class Toolbar extends events.EventEmitter {
         canvas.style.height = `${font.height * 2}px`;
         canvas.style.margin = `${(48 - font.height * 2 - 2) / 2}px`;
         const ctx = canvas.getContext("2d");
-        font.draw(ctx, {code, fg, bg}, 0, 0);
+        font.draw(ctx, {code, fg, bg, fg_rgb, bg_rgb}, 0, 0);
     }
 
     redraw_fkeys() {
@@ -448,12 +454,12 @@ class Toolbar extends events.EventEmitter {
 
     draw_custom_block() {
         const font = doc.font;
-        const {fg, bg} = palette;
+        const {fg, bg, fg_rgb, bg_rgb} = palette.draw_colors();
         const canvas = $("custom_block_canvas");
         canvas.width = font.width;
         canvas.height = font.height;
         const ctx = canvas.getContext("2d");
-        font.draw(ctx, {code: this.custom_block_index, fg, bg}, 0, 0);
+        font.draw(ctx, {code: this.custom_block_index, fg, bg, fg_rgb, bg_rgb}, 0, 0);
     }
 
     change_fkeys(num) {

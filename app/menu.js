@@ -296,6 +296,7 @@ function colors_menu_template(win) {
             {label: "Switch Foreground / Background", id: "switch_foreground_background", accelerator: "Shift+CmdorCtrl+X", click(item) {win.send("switch_foreground_background");}},
             {type: "separator"},
             {label: "Use iCE Colors", id: "ice_colors", accelerator: "CmdorCtrl+E", click(item) {win.send("ice_colors", item.checked);}, type: "checkbox", checked: false},
+            {label: "Extended Colors (256/True-Color)", id: "extended_colors", accelerator: "CmdorCtrl+Shift+E", click(item) {win.send("extended_colors", item.checked);}, type: "checkbox", checked: false},
             {type: "separator"},
             {label: "Remove iCE Colors as New Document", id: "remove_ice_colors", click(item) {win.send("remove_ice_colors");}},
         ]
@@ -589,11 +590,12 @@ electron.ipcMain.on("enable_editing_shortcuts", (event, {id}) => {
     enable(id, "select_attribute");
 });
 
-electron.ipcMain.on("update_menu_checkboxes", (event, {id, insert_mode, overwrite_mode, use_9px_font, ice_colors, actual_size, font_name}) => {
+electron.ipcMain.on("update_menu_checkboxes", (event, {id, insert_mode, overwrite_mode, use_9px_font, ice_colors, extended_colors, actual_size, font_name}) => {
     if (insert_mode != undefined) set_check(id, "toggle_insert_mode", insert_mode);
     if (overwrite_mode != undefined) set_check(id, "overwrite_mode", overwrite_mode);
     if (use_9px_font != undefined) set_check(id, "use_9px_font", use_9px_font);
     if (ice_colors != undefined) set_check(id, "ice_colors", ice_colors);
+    if (extended_colors != undefined) set_check(id, "extended_colors", extended_colors);
     if (actual_size != undefined) set_check(id, "actual_size", actual_size);
     if (font_name != undefined) {
         if (font_names[id]) uncheck(id, font_names[id]);

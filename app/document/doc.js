@@ -724,6 +724,7 @@ class TextModeDoc extends events.EventEmitter {
     get palette() {return doc.palette;}
     get font_name() {return doc.font_name;}
     get ice_colors() {return doc.ice_colors;}
+    get extended_colors() {return doc.extended_colors;}
     get use_9px_font() {return doc.use_9px_font;}
     get data() {return doc.data;}
     get c64_background() {return doc.c64_background;}
@@ -768,6 +769,12 @@ class TextModeDoc extends events.EventEmitter {
         if (connection) connection.ice_colors(doc.ice_colors);
     }
 
+    set extended_colors(value) {
+        doc.extended_colors = value;
+        if (render) render.extended_colors = value;
+        this.start_rendering().then(() => this.emit("extended_colors", doc.extended_colors));
+    }
+
     at(x, y) {
         if (x < 0 || x >= doc.columns || y < 0 || y >= doc.rows) return;
         return doc.data[y * doc.columns + x];
@@ -790,7 +797,7 @@ class TextModeDoc extends events.EventEmitter {
         if (connection) connection.draw(x, y, doc.data[i]);
         if (this.mirror_mode && mirrored) {
             const opposing_x = Math.floor(doc.columns / 2) - (x - Math.ceil(doc.columns / 2)) - 1;
-            this.change_data(opposing_x, y, libtextmode.flip_code_x(code), fg, bg, undefined, undefined, false);
+            this.change_data(opposing_x, y, libtextmode.flip_code_x(code), fg, bg, undefined, undefined, false, {fg_rgb, bg_rgb, fg_idx, bg_idx});
         }
     }
 
@@ -806,33 +813,49 @@ class TextModeDoc extends events.EventEmitter {
         const text_y = Math.floor(y / 2);
         const is_top = (y % 2 == 0);
         const block = doc.data[doc.columns * text_y + x];
-        let upper_block_color = 0;
-        let lower_block_color = 0;
-        let left_block_color = 0;
-        let right_block_color = 0;
-        let is_blocky = false;
-        let is_vertically_blocky = false;
+        let upper_block_color = 0, lower_block_color = 0;
+        let upper_block_rgb, lower_block_rgb, upper_block_idx, lower_block_idx;
+        let left_block_color = 0, right_block_color = 0;
+        let is_blocky = false, is_vertically_blocky = false;
         switch (block.code) {
-        case 0: case 32: case 255: upper_block_color = block.bg; lower_block_color = block.bg; is_blocky = true; break;
-        case 220: upper_block_color = block.bg; lower_block_color = block.fg; is_blocky = true; break;
-        case 223: upper_block_color = block.fg; lower_block_color = block.bg; is_blocky = true; break;
-        case 219: upper_block_color = block.fg; lower_block_color = block.fg; is_blocky = true; break;
+        case 0: case 32: case 255:
+            upper_block_color = block.bg; lower_block_color = block.bg; is_blocky = true;
+            upper_block_rgb = block.bg_rgb; lower_block_rgb = block.bg_rgb;
+            upper_block_idx = block.bg_idx; lower_block_idx = block.bg_idx;
+            break;
+        case 220: // ▄ lower solid: fg=lower, bg=upper
+            upper_block_color = block.bg; lower_block_color = block.fg; is_blocky = true;
+            upper_block_rgb = block.bg_rgb; lower_block_rgb = block.fg_rgb;
+            upper_block_idx = block.bg_idx; lower_block_idx = block.fg_idx;
+            break;
+        case 223: // ▀ upper solid: fg=upper, bg=lower
+            upper_block_color = block.fg; lower_block_color = block.bg; is_blocky = true;
+            upper_block_rgb = block.fg_rgb; lower_block_rgb = block.bg_rgb;
+            upper_block_idx = block.fg_idx; lower_block_idx = block.bg_idx;
+            break;
+        case 219: // █ full: fg=both
+            upper_block_color = block.fg; lower_block_color = block.fg; is_blocky = true;
+            upper_block_rgb = block.fg_rgb; lower_block_rgb = block.fg_rgb;
+            upper_block_idx = block.fg_idx; lower_block_idx = block.fg_idx;
+            break;
         case 221: left_block_color = block.fg; right_block_color = block.bg; is_vertically_blocky = true; break;
         case 222: left_block_color = block.bg; right_block_color = block.fg; is_vertically_blocky = true; break;
         default:
             if (block.fg == block.bg) {
                 is_blocky = true;
-                upper_block_color = block.fg;
-                lower_block_color = block.fg;
+                upper_block_color = block.fg; lower_block_color = block.fg;
+                upper_block_rgb = block.fg_rgb; lower_block_rgb = block.fg_rgb;
+                upper_block_idx = block.fg_idx; lower_block_idx = block.fg_idx;
             } else {
                 is_blocky = false;
             }
         }
-        return {x, y, text_y, is_blocky, is_vertically_blocky, upper_block_color, lower_block_color, left_block_color, right_block_color, is_top, fg: block.fg, bg: block.bg};
+        return {x, y, text_y, is_blocky, is_vertically_blocky, upper_block_color, lower_block_color, upper_block_rgb, lower_block_rgb, upper_block_idx, lower_block_idx, left_block_color, right_block_color, is_top, fg: block.fg, bg: block.bg, fg_rgb: block.fg_rgb, bg_rgb: block.bg_rgb, fg_idx: block.fg_idx, bg_idx: block.bg_idx};
     }
 
     optimize_block(x, y) {
         const block = this.at(x, y);
+        if (block.fg_rgb || block.bg_rgb) return;
         if (block.fg == 0) {
             if (block.bg == 0 || block.code == 219) {
                 this.change_data(x, y, 32, 7, 0);
@@ -858,22 +881,27 @@ class TextModeDoc extends events.EventEmitter {
         }
     }
 
-    set_half_block(x, y, col) {
+    set_half_block(x, y, col, col_rgb = undefined, col_idx = undefined) {
         if (x < 0 || x >= doc.columns || y < 0 || y >= doc.rows * 2) return;
         const block = this.get_half_block(x, y);
+        const same_color = (a, a_rgb, b, b_rgb) =>
+            (a_rgb || b_rgb)
+                ? (a_rgb && b_rgb && a_rgb.r === b_rgb.r && a_rgb.g === b_rgb.g && a_rgb.b === b_rgb.b)
+                : (a === b);
         if (block.is_blocky) {
-            if ((block.is_top && block.lower_block_color == col) || (!block.is_top && block.upper_block_color == col)) {
-                this.change_data(x, block.text_y, 219, col, 0);
+            if ((block.is_top && same_color(col, col_rgb, block.lower_block_color, block.lower_block_rgb)) ||
+                (!block.is_top && same_color(col, col_rgb, block.upper_block_color, block.upper_block_rgb))) {
+                this.change_data(x, block.text_y, 219, col, 0, undefined, undefined, true, {fg_rgb: col_rgb, fg_idx: col_idx});
             } else if (block.is_top) {
-                this.change_data(x, block.text_y, 223, col, block.lower_block_color);
+                this.change_data(x, block.text_y, 223, col, block.lower_block_color, undefined, undefined, true, {fg_rgb: col_rgb, fg_idx: col_idx, bg_rgb: block.lower_block_rgb, bg_idx: block.lower_block_idx});
             } else {
-                this.change_data(x, block.text_y, 220, col, block.upper_block_color);
+                this.change_data(x, block.text_y, 220, col, block.upper_block_color, undefined, undefined, true, {fg_rgb: col_rgb, fg_idx: col_idx, bg_rgb: block.upper_block_rgb, bg_idx: block.upper_block_idx});
             }
         } else {
             if (block.is_top) {
-                this.change_data(x, block.text_y, 223, col, block.bg);
+                this.change_data(x, block.text_y, 223, col, block.bg, undefined, undefined, true, {fg_rgb: col_rgb, fg_idx: col_idx, bg_rgb: block.bg_rgb, bg_idx: block.bg_idx});
             } else {
-                this.change_data(x, block.text_y, 220, col, block.bg);
+                this.change_data(x, block.text_y, 220, col, block.bg, undefined, undefined, true, {fg_rgb: col_rgb, fg_idx: col_idx, bg_rgb: block.bg_rgb, bg_idx: block.bg_idx});
             }
         }
         this.optimize_block(block.x, block.text_y);
@@ -1124,6 +1152,7 @@ class TextModeDoc extends events.EventEmitter {
         this.undo_history = new UndoHistory();
         this.undo_history.on("resize", () => this.start_rendering());
         on("ice_colors", (event, value) => this.ice_colors = value);
+        on("extended_colors", (event, value) => this.extended_colors = value);
         on("use_9px_font", (event, value) => this.use_9px_font = value);
         on("change_font", (event, font_name) => this.font_name = font_name);
         on("get_sauce_info", (event) => send_sync("get_sauce_info", {title: doc.title, author: doc.author, group: doc.group, comments: doc.comments}));

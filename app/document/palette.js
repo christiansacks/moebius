@@ -58,6 +58,7 @@ class PaletteChooser extends events.EventEmitter {
         this.fg_rgb = palette_256[idx];
         const {r, g, b} = this.fg_rgb;
         document.getElementById("fg").style.backgroundColor = `rgb(${r},${g},${b})`;
+        if (!doc.extended_colors) doc.extended_colors = true;
         this.emit("set_fg", this.fg_value);
     }
 
@@ -67,6 +68,7 @@ class PaletteChooser extends events.EventEmitter {
         this.bg_rgb = palette_256[idx];
         const {r, g, b} = this.bg_rgb;
         document.getElementById("bg").style.backgroundColor = `rgb(${r},${g},${b})`;
+        if (!doc.extended_colors) doc.extended_colors = true;
         this.emit("set_bg", this.bg_value);
     }
 
@@ -75,6 +77,7 @@ class PaletteChooser extends events.EventEmitter {
         this.fg_idx = null;
         this.fg_rgb = {r, g, b};
         document.getElementById("fg").style.backgroundColor = `rgb(${r},${g},${b})`;
+        if (!doc.extended_colors) doc.extended_colors = true;
         this.emit("set_fg", this.fg_value);
     }
 
@@ -83,6 +86,7 @@ class PaletteChooser extends events.EventEmitter {
         this.bg_idx = null;
         this.bg_rgb = {r, g, b};
         document.getElementById("bg").style.backgroundColor = `rgb(${r},${g},${b})`;
+        if (!doc.extended_colors) doc.extended_colors = true;
         this.emit("set_bg", this.bg_value);
     }
 

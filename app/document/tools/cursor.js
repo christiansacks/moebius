@@ -359,12 +359,13 @@ class Cursor {
         if (keyboard.insert_mode) {
             for (let x = doc.columns - 1; x > this.x; x--) {
                 const block = doc.at(x - 1, this.y);
-                doc.change_data(x, this.y, block.code, block.fg, block.bg);
+                doc.change_data(x, this.y, block.code, block.fg, block.bg, undefined, undefined, true, {fg_rgb: block.fg_rgb, bg_rgb: block.bg_rgb, fg_idx: block.fg_idx, bg_idx: block.bg_idx});
             }
         }
         const x = this.x;
         if (!keyboard.overwrite_mode) this.right();
-        doc.change_data(x, this.y, code, palette.fg, palette.bg, {prev_x: x, prev_y: this.y}, this);
+        const {fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx} = palette.draw_colors();
+        doc.change_data(x, this.y, code, fg, bg, {prev_x: x, prev_y: this.y}, this, true, {fg_rgb, bg_rgb, fg_idx, bg_idx});
         this.draw();
     }
 
@@ -391,7 +392,7 @@ class Cursor {
         doc.start_undo();
         for (let x = this.x; x < doc.columns - 1; x++) {
             const block = doc.at(x + 1, this.y);
-            doc.change_data(x, this.y, block.code, block.fg, block.bg);
+            doc.change_data(x, this.y, block.code, block.fg, block.bg, undefined, undefined, true, {fg_rgb: block.fg_rgb, bg_rgb: block.bg_rgb, fg_idx: block.fg_idx, bg_idx: block.bg_idx});
         }
         doc.clear_at(doc.columns - 1, this.y, {prev_x: this.x, prev_y: this.y}, this);
     }

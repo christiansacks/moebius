@@ -66,19 +66,20 @@ mouse.on("up", (x, y, half_y, button) => {
     if (!enabled) return;
     overlay.destroy();
     doc.start_undo();
-    const {fg, bg} = palette;
+    const {fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx} = palette.draw_colors();
     if (toolbar.mode == toolbar.modes.HALF_BLOCK) {
         if (clear) {
             brushes.single_half_block_line(mouse.start.x, mouse.start.half_y, x, half_y, 0);
         } else {
-            brushes.single_half_block_line(mouse.start.x, mouse.start.half_y, x, half_y, (button == mouse.buttons.LEFT) ? fg : bg);
+            const use_fg = (button == mouse.buttons.LEFT);
+            brushes.single_half_block_line(mouse.start.x, mouse.start.half_y, x, half_y, use_fg ? fg : bg, false, use_fg ? fg_rgb : bg_rgb, use_fg ? fg_idx : bg_idx);
         }
     } else if (clear) {
         brushes.clear_block_line(mouse.start.x, mouse.start.y, x, y);
     } else {
         switch (toolbar.mode) {
             case toolbar.modes.CUSTOM_BLOCK:
-                brushes.single_custom_block_line(mouse.start.x, mouse.start.y, x, y, fg, bg);
+                brushes.single_custom_block_line(mouse.start.x, mouse.start.y, x, y, fg, bg, false, {fg_rgb, bg_rgb, fg_idx, bg_idx});
                 break;
             case toolbar.modes.SHADING_BLOCK:
                 brushes.single_shading_block_line(mouse.start.x, mouse.start.y, x, y, fg, bg, button != mouse.buttons.LEFT);

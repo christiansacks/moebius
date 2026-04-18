@@ -577,7 +577,7 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
 }
 
 function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
-    if (!utf8 && has_extended_colors(doc)) return encode_as_ansi_extended(doc, save_without_sauce);
+    if (!utf8 && doc.extended_colors !== false && has_extended_colors(doc)) return encode_as_ansi_extended(doc, save_without_sauce);
     let output = [27, 91, 48, 109];
     let bold = false;
     let blink = false;

@@ -30,7 +30,8 @@ function mouse_handler(skip_first) {
             if (shift_key) {
                 brushes.half_block_line(mouse.x, mouse.half_y, x, half_y, 0, skip_first);
             } else {
-                brushes.half_block_line(mouse.x, mouse.half_y, x, half_y, (button == mouse.buttons.LEFT) ? fg : bg, skip_first);
+                const use_fg = (button == mouse.buttons.LEFT);
+                brushes.half_block_line(mouse.x, mouse.half_y, x, half_y, use_fg ? fg : bg, skip_first, use_fg ? fg_rgb : bg_rgb, use_fg ? fg_idx : bg_idx);
             }
         } else if (shift_key) {
             brushes.clear_block_line(mouse.x, mouse.y, x, y);
@@ -62,9 +63,11 @@ function mouse_up(x, y, half_y, button, single_point, shift_key) {
         const {fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx} = palette.draw_colors();
         const colors_ext = {fg_rgb, bg_rgb, fg_idx, bg_idx};
         switch (toolbar.mode) {
-            case toolbar.modes.HALF_BLOCK:
-                brushes.half_block_line(last_xy.x, last_xy.half_y, x, half_y, (button == mouse.buttons.LEFT) ? fg : bg);
+            case toolbar.modes.HALF_BLOCK: {
+                const use_fg = (button == mouse.buttons.LEFT);
+                brushes.half_block_line(last_xy.x, last_xy.half_y, x, half_y, use_fg ? fg : bg, false, use_fg ? fg_rgb : bg_rgb, use_fg ? fg_idx : bg_idx);
                 break;
+            }
             case toolbar.modes.CUSTOM_BLOCK:
                 brushes.custom_block_line(last_xy.x, last_xy.y, x, y, fg, bg, false, colors_ext);
                 break;
