@@ -2,19 +2,19 @@
 ![Moebius Screenshot](docs/screenshot.png)
 # Moebius
 
-Moebius is an ANSI Editor for MacOS, Linux and Windows. The major feature that differentiates it from [PabloDraw](https://github.com/blocktronics/pablodraw) is the 'half-block' brush which allows editing in a style closer to Photoshop than a text editor, although you can still use the function and cursor keys to draw with, and you should find that most of the text editing features from PabloDraw are carried over to this editor. The editor is still a work in progress, but anyone who wants to try using it is also encouraged to [log feature requests and bugs](https://github.com/blocktronics/moebius/issues) on the project's GitHub page.
+Moebius is an ANSI Editor for MacOS, Linux and Windows. The major feature that differentiates it from [PabloDraw](https://github.com/blocktronics/pablodraw) is the 'half-block' brush which allows editing in a style closer to Photoshop than a text editor, although you can still use the function and cursor keys to draw with, and you should find that most of the text editing features from PabloDraw are carried over to this editor. The editor is still a work in progress, but anyone who wants to try using it is also encouraged to [log feature requests and bugs](https://github.com/christiansacks/moebius/issues) on the project's GitHub page.
 
 ## Download packages
-Packaged binaries are available through Github [Releases](https://github.com/blocktronics/moebius/releases) or from the direct links below:
+Packaged binaries are available through Github [Releases](https://github.com/christiansacks/moebius/releases) or from the direct links below:
 
-* [MacOS](https://github.com/blocktronics/moebius/releases/latest/download/Moebius.dmg)
-* [Windows Installer](https://github.com/blocktronics/moebius/releases/latest/download/Moebius.Setup.exe)
-* [Windows Portable](https://github.com/blocktronics/moebius/releases/latest/download/Moebius.exe)
-* [Debian Linux](https://github.com/blocktronics/moebius/releases/latest/download/Moebius.deb)
+* [MacOS](https://github.com/christiansacks/moebius/releases/latest/download/Moebius.dmg)
+* [Windows Installer](https://github.com/christiansacks/moebius/releases/latest/download/Moebius.Setup.exe)
+* [Windows Portable](https://github.com/christiansacks/moebius/releases/latest/download/Moebius.exe)
+* [Debian Linux](https://github.com/christiansacks/moebius/releases/latest/download/Moebius.deb)
 
 ## Installation & building
 ```
-git clone git@github.com:blocktronics/moebius.git
+git clone git@github.com:christiansacks/moebius.git
 npm install
 npm start
 ```
@@ -32,7 +32,7 @@ Moebius features collaboration by multiple users on the same canvas through a se
 
 To start a server:
 ```
-git clone git@github.com:blocktronics/moebius.git
+git clone git@github.com:christiansacks/moebius.git
 npm install
 node ./server.js
 ```
@@ -60,7 +60,7 @@ The following parameters can be set:
 ## License
 Copyright 2022 Andy Herbert
 
-Licensed under the [Apache License, version 2.0](https://github.com/blocktronics/moebius/blob/master/LICENSE.txt)
+Licensed under the [Apache License, version 2.0](https://github.com/christiansacks/moebius/blob/master/LICENSE.txt)
 
 ## Links
 * Moebius homepage: [https://blocktronics.github.io/moebius/](https://blocktronics.github.io/moebius/)
