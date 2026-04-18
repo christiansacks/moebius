@@ -816,6 +816,7 @@ class TextModeDoc extends events.EventEmitter {
         let upper_block_color = 0, lower_block_color = 0;
         let upper_block_rgb, lower_block_rgb, upper_block_idx, lower_block_idx;
         let left_block_color = 0, right_block_color = 0;
+        let left_block_rgb, right_block_rgb, left_block_idx, right_block_idx;
         let is_blocky = false, is_vertically_blocky = false;
         switch (block.code) {
         case 0: case 32: case 255:
@@ -838,8 +839,16 @@ class TextModeDoc extends events.EventEmitter {
             upper_block_rgb = block.fg_rgb; lower_block_rgb = block.fg_rgb;
             upper_block_idx = block.fg_idx; lower_block_idx = block.fg_idx;
             break;
-        case 221: left_block_color = block.fg; right_block_color = block.bg; is_vertically_blocky = true; break;
-        case 222: left_block_color = block.bg; right_block_color = block.fg; is_vertically_blocky = true; break;
+        case 221:
+            left_block_color = block.fg; right_block_color = block.bg; is_vertically_blocky = true;
+            left_block_rgb = block.fg_rgb; right_block_rgb = block.bg_rgb;
+            left_block_idx = block.fg_idx; right_block_idx = block.bg_idx;
+            break;
+        case 222:
+            left_block_color = block.bg; right_block_color = block.fg; is_vertically_blocky = true;
+            left_block_rgb = block.bg_rgb; right_block_rgb = block.fg_rgb;
+            left_block_idx = block.bg_idx; right_block_idx = block.fg_idx;
+            break;
         default:
             if (block.fg == block.bg) {
                 is_blocky = true;
@@ -850,7 +859,7 @@ class TextModeDoc extends events.EventEmitter {
                 is_blocky = false;
             }
         }
-        return {x, y, text_y, is_blocky, is_vertically_blocky, upper_block_color, lower_block_color, upper_block_rgb, lower_block_rgb, upper_block_idx, lower_block_idx, left_block_color, right_block_color, is_top, fg: block.fg, bg: block.bg, fg_rgb: block.fg_rgb, bg_rgb: block.bg_rgb, fg_idx: block.fg_idx, bg_idx: block.bg_idx};
+        return {x, y, text_y, is_blocky, is_vertically_blocky, upper_block_color, lower_block_color, upper_block_rgb, lower_block_rgb, upper_block_idx, lower_block_idx, left_block_color, right_block_color, left_block_rgb, right_block_rgb, left_block_idx, right_block_idx, is_top, fg: block.fg, bg: block.bg, fg_rgb: block.fg_rgb, bg_rgb: block.bg_rgb, fg_idx: block.fg_idx, bg_idx: block.bg_idx};
     }
 
     optimize_block(x, y) {

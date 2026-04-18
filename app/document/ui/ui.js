@@ -425,11 +425,11 @@ class Tools extends events.EventEmitter {
 }
 
 class Toolbar extends events.EventEmitter {
-    set_color(name, index, font) {
+    set_color(name, index, font, rgb = undefined) {
         const canvas = document.getElementById(name);
         const ctx = canvas.getContext("2d");
-        const rgb = font.get_rgb(index);
-        ctx.fillStyle = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+        const color = rgb || font.get_rgb(index);
+        ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -568,9 +568,9 @@ class Toolbar extends events.EventEmitter {
         const canvas = document.getElementById("sample_block");
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        font.draw_raw(ctx, block, 0, 0);
-        this.set_color("sample_fg", block.fg, font);
-        this.set_color("sample_bg", block.bg, font);
+        font.draw(ctx, block, 0, 0);
+        this.set_color("sample_fg", block.fg, font, block.fg_rgb);
+        this.set_color("sample_bg", block.bg, font, block.bg_rgb);
         $("code_value").textContent = `${block.code}`;
         $("fg_value").textContent = `${block.fg}`;
         $("bg_value").textContent = `${block.bg}`;
