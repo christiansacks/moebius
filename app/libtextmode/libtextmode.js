@@ -11,13 +11,18 @@ const fs = require("fs");
 const upng = require("upng-js");
 
 function read_bytes(bytes, file) {
+    let result;
     switch (path.extname(file).toLowerCase()) {
-        case ".bin": return new BinaryText(bytes);
-        case ".xb": return new XBin(bytes);
+        case ".bin": result = new BinaryText(bytes); break;
+        case ".xb": result = new XBin(bytes); break;
         case ".ans":
         default:
-        return new Ansi(bytes);
+        result = new Ansi(bytes);
     }
+    if (result.extended_colors === undefined && result.data) {
+        result.extended_colors = result.data.some(b => b.fg_rgb || b.bg_rgb || b.fg_idx !== undefined || b.bg_idx !== undefined);
+    }
+    return result;
 }
 
 async function read_file(file) {
