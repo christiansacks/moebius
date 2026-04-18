@@ -42,7 +42,7 @@ mouse.on("down",(x, y, half_y, is_legal, button, shift_key) => {
 
 mouse.on("to", (x, y, half_y, button) => {
     if (!enabled) return;
-    const {fg, bg} = palette;
+    const {fg, bg} = palette.draw_colors();
     if (toolbar.mode == toolbar.modes.HALF_BLOCK) {
         const {sx, sy, dx, dy} = reorientate(mouse.start.x, mouse.start.half_y, x, half_y);
         if (clear) {
@@ -64,14 +64,18 @@ mouse.on("up", (x, y, half_y, button) => {
     if (!enabled) return;
     overlay.destroy();
     doc.start_undo();
-    const {fg, bg} = palette;
+    const {fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx} = palette.draw_colors();
+    const colors_ext = {fg_rgb, bg_rgb, fg_idx, bg_idx};
     if (toolbar.mode == toolbar.modes.HALF_BLOCK) {
         const {sx, sy, dx, dy} = reorientate(mouse.start.x, mouse.start.half_y, x, half_y);
         if (clear) {
             for (let y = sy; y <= dy; y++) brushes.single_half_block_line(sx, y, dx, y, 0);
         } else {
-            const col = (button == mouse.buttons.LEFT) ? fg : bg;
-            for (let y = sy; y <= dy; y++) brushes.single_half_block_line(sx, y, dx, y, col);
+            const use_fg = (button == mouse.buttons.LEFT);
+            const col = use_fg ? fg : bg;
+            const col_rgb = use_fg ? fg_rgb : bg_rgb;
+            const col_idx = use_fg ? fg_idx : bg_idx;
+            for (let y = sy; y <= dy; y++) brushes.single_half_block_line(sx, y, dx, y, col, false, col_rgb, col_idx);
         }
         return;
     }
@@ -81,7 +85,7 @@ mouse.on("up", (x, y, half_y, button) => {
     } else {
         switch (toolbar.mode) {
             case toolbar.modes.CUSTOM_BLOCK:
-                for (let y = sy; y <= dy; y++) brushes.single_custom_block_line(sx, y, dx, y, fg, bg);
+                for (let y = sy; y <= dy; y++) brushes.single_custom_block_line(sx, y, dx, y, fg, bg, false, colors_ext);
                 break;
             case toolbar.modes.SHADING_BLOCK:
                 const reduce = (button != mouse.buttons.LEFT);

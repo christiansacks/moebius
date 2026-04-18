@@ -83,10 +83,10 @@ function full_block_ellipse_overlay(sx, sy, dx, dy, col) {
     for (const coord of coords) overlay.fill_rect(coord.x * font.width, coord.y * font.height, font.width, font.height);
 }
 
-function draw_half_block_ellipse(sx, sy, dx, dy, col) {
+function draw_half_block_ellipse(sx, sy, dx, dy, col, col_rgb = undefined, col_idx = undefined) {
     const coords = ellipse_coords(sx, sy, dx, dy);
     if (!coords) return;
-    for (const coord of coords) doc.set_half_block(coord.x, coord.y, col);
+    for (const coord of coords) doc.set_half_block(coord.x, coord.y, col, col_rgb, col_idx);
 }
 
 function draw_clear_block_ellipse(sx, sy, dx, dy) {
@@ -95,10 +95,10 @@ function draw_clear_block_ellipse(sx, sy, dx, dy) {
     for (const coord of coords) doc.change_data(coord.x, coord.y, 32, 7, 0);
 }
 
-function draw_custom_block_ellipse(sx, sy, dx, dy, fg, bg) {
+function draw_custom_block_ellipse(sx, sy, dx, dy, fg, bg, colors_ext = {}) {
     const coords = ellipse_coords(sx, sy, dx, dy);
     if (!coords) return;
-    for (const coord of coords) doc.change_data(coord.x, coord.y, toolbar.custom_block_index, fg, bg);
+    for (const coord of coords) doc.change_data(coord.x, coord.y, toolbar.custom_block_index, fg, bg, undefined, undefined, true, colors_ext);
 }
 
 function draw_shaded_block_ellipse(sx, sy, dx, dy, fg, bg, reduce) {
@@ -143,7 +143,7 @@ mouse.on("down",(x, y, half_y, is_legal, button, shift_key) => {
 
 mouse.on("to", (x, y, half_y, button) => {
     if (!enabled) return;
-    const {fg, bg} = palette;
+    const {fg, bg} = palette.draw_colors();
     if (toolbar.mode == toolbar.modes.HALF_BLOCK) {
         if (clear) {
             half_block_ellipse_overlay(mouse.start.x, mouse.start.half_y, x, half_y, 0);
@@ -163,12 +163,14 @@ mouse.on("up", (x, y, half_y, button) => {
     if (!enabled) return;
     overlay.destroy();
     doc.start_undo();
-    const {fg, bg} = palette;
+    const {fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx} = palette.draw_colors();
+    const colors_ext = {fg_rgb, bg_rgb, fg_idx, bg_idx};
     if (toolbar.mode == toolbar.modes.HALF_BLOCK) {
         if (clear) {
             draw_half_block_ellipse(mouse.start.x, mouse.start.half_y, x, half_y, 0);
         } else {
-            draw_half_block_ellipse(mouse.start.x, mouse.start.half_y, x, half_y, (button == mouse.buttons.LEFT) ? fg : bg);
+            const use_fg = (button == mouse.buttons.LEFT);
+            draw_half_block_ellipse(mouse.start.x, mouse.start.half_y, x, half_y, use_fg ? fg : bg, use_fg ? fg_rgb : bg_rgb, use_fg ? fg_idx : bg_idx);
         }
         return;
     }
@@ -177,7 +179,7 @@ mouse.on("up", (x, y, half_y, button) => {
     } else {
         switch (toolbar.mode) {
             case toolbar.modes.CUSTOM_BLOCK:
-                draw_custom_block_ellipse(mouse.start.x, mouse.start.y, x, y, fg, bg);
+                draw_custom_block_ellipse(mouse.start.x, mouse.start.y, x, y, fg, bg, colors_ext);
                 break;
             case toolbar.modes.SHADING_BLOCK:
                 const reduce = (button != mouse.buttons.LEFT);
