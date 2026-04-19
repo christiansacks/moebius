@@ -595,7 +595,10 @@ electron.ipcMain.on("update_menu_checkboxes", (event, {id, insert_mode, overwrit
     if (overwrite_mode != undefined) set_check(id, "overwrite_mode", overwrite_mode);
     if (use_9px_font != undefined) set_check(id, "use_9px_font", use_9px_font);
     if (ice_colors != undefined) set_check(id, "ice_colors", ice_colors);
-    if (extended_colors != undefined) set_check(id, "extended_colors", extended_colors);
+    if (extended_colors != undefined) {
+        set_check(id, "extended_colors", extended_colors);
+        if (extended_colors) disable(id, "share_online"); else enable(id, "share_online");
+    }
     if (actual_size != undefined) set_check(id, "actual_size", actual_size);
     if (font_name != undefined) {
         if (font_names[id]) uncheck(id, font_names[id]);
