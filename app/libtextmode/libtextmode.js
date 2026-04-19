@@ -589,9 +589,12 @@ function get_data_url(canvases) {
 }
 
 function compress(doc) {
-    const compressed_data = {code: [], fg: [], bg: []};
+    const compressed_data = {code: [], fg: [], bg: [], ext: []};
     for (let i = 0, code_repeat = 0, fg_repeat = 0, bg_repeat = 0; i < doc.data.length; i++) {
         const block = doc.data[i];
+        if (block.fg_rgb || block.bg_rgb || block.fg_idx !== undefined || block.bg_idx !== undefined) {
+            compressed_data.ext.push([i, block.fg_rgb, block.bg_rgb, block.fg_idx, block.bg_idx]);
+        }
         if (i + 1 == doc.data.length) {
             compressed_data.code.push([block.code, code_repeat]);
             compressed_data.fg.push([block.fg, fg_repeat]);
@@ -618,7 +621,7 @@ function compress(doc) {
             }
         }
     }
-    return {columns: doc.columns, rows: doc.rows, title: doc.title, author: doc.author, group: doc.group, date: doc.date, palette: doc.palette, font_name: doc.font_name, ice_colors: doc.ice_colors, use_9px_font: doc.use_9px_font, comments: doc.comments, compressed_data, c64_background: doc.c64_background};
+    return {columns: doc.columns, rows: doc.rows, title: doc.title, author: doc.author, group: doc.group, date: doc.date, palette: doc.palette, font_name: doc.font_name, ice_colors: doc.ice_colors, extended_colors: doc.extended_colors, use_9px_font: doc.use_9px_font, comments: doc.comments, compressed_data, c64_background: doc.c64_background};
 }
 
 function uncompress(doc) {
@@ -637,7 +640,15 @@ function uncompress(doc) {
         }
         doc.data = new Array(codes.length);
         for (let i = 0; i < doc.data.length; i++) doc.data[i] = {code: codes[i], fg: fgs[i], bg: bgs[i]};
+        if (doc.compressed_data.ext) {
+            for (const [i, fg_rgb, bg_rgb, fg_idx, bg_idx] of doc.compressed_data.ext) {
+                if (doc.data[i]) { doc.data[i].fg_rgb = fg_rgb; doc.data[i].bg_rgb = bg_rgb; doc.data[i].fg_idx = fg_idx; doc.data[i].bg_idx = bg_idx; }
+            }
+        }
         delete doc.compressed_data;
+        if (!doc.extended_colors) {
+            doc.extended_colors = doc.data.some(b => b.fg_rgb || b.bg_rgb || b.fg_idx !== undefined || b.bg_idx !== undefined);
+        }
     }
     return doc;
 }

@@ -102,7 +102,11 @@ class Joint {
         break;
         case action.DRAW:
             if ((msg.data.x < this.doc.columns) && (msg.data.y < this.doc.rows)) {
-                this.doc.data[msg.data.y * this.doc.columns + msg.data.x] = Object.assign(msg.data.block);
+                const block = Object.assign(msg.data.block);
+                this.doc.data[msg.data.y * this.doc.columns + msg.data.x] = block;
+                if (!this.doc.extended_colors && (block.fg_rgb || block.bg_rgb || block.fg_idx !== undefined || block.bg_idx !== undefined)) {
+                    this.doc.extended_colors = true;
+                }
                 this.send_all_including_guests(ws, msg.type, msg.data);
             }
         break;
