@@ -75,12 +75,12 @@ function has_c64_palette(palette) {
 
 function build_palette_256() {
     const p = [];
-    // 0-15: standard xterm/ANSI colors (8-bit, xterm order)
+    // 0-15: IBM VGA palette (matches ega[] used for 16-colour rendering)
     const ansi16 = [
-        {r:0,g:0,b:0}, {r:128,g:0,b:0}, {r:0,g:128,b:0}, {r:128,g:128,b:0},
-        {r:0,g:0,b:128}, {r:128,g:0,b:128}, {r:0,g:128,b:128}, {r:192,g:192,b:192},
-        {r:128,g:128,b:128}, {r:255,g:0,b:0}, {r:0,g:255,b:0}, {r:255,g:255,b:0},
-        {r:0,g:0,b:255}, {r:255,g:0,b:255}, {r:0,g:255,b:255}, {r:255,g:255,b:255}
+        {r:0,g:0,b:0},     {r:0,g:0,b:170},   {r:0,g:170,b:0},   {r:0,g:170,b:170},
+        {r:170,g:0,b:0},   {r:170,g:0,b:170},  {r:170,g:85,b:0},  {r:170,g:170,b:170},
+        {r:85,g:85,b:85},  {r:85,g:85,b:255},  {r:85,g:255,b:85}, {r:85,g:255,b:255},
+        {r:255,g:85,b:85}, {r:255,g:85,b:255}, {r:255,g:255,b:85},{r:255,g:255,b:255}
     ];
     for (const c of ansi16) p.push(c);
     // 16-231: 6x6x6 color cube
