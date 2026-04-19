@@ -9,7 +9,17 @@ const ans_path = remote.app.isPackaged ? `${process.resourcesPath}/ans/` : "./bu
 function show_new_version_button() {
     const new_version = document.getElementById("new_version");
     new_version.classList.add("slide_down");
-    new_version.addEventListener("click", (event) => electron.shell.openExternal("https://blocktronics.github.io/moebius/"), true);
+    new_version.addEventListener("click", (event) => electron.shell.openExternal("https://github.com/christiansacks/moebius/releases/latest"), true);
+}
+
+function is_newer(remote_ver, local_ver) {
+    const r = remote_ver.split(".").map(Number);
+    const l = local_ver.split(".").map(Number);
+    for (let i = 0; i < 3; i++) {
+        if ((r[i] || 0) > (l[i] || 0)) return true;
+        if ((r[i] || 0) < (l[i] || 0)) return false;
+    }
+    return false;
 }
 
 function connect(event) {
@@ -54,14 +64,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("server").addEventListener("keydown", key_down, true);
     document.getElementById("pass").addEventListener("keydown", key_down, true);
     libtextmode.animate({file: `${ans_path}MB4K.ans`, ctx: document.getElementById("splash_terminal").getContext("2d")});
-    fetch("https://blocktronics.github.io/moebius/latest.json", {cache: "no-cache"}).then((response) => response.json()).then((json) => {
-        if (remote.app.getVersion() != json.version) {
-            // 50/50 chance to show update button to stagger updates to try and mitigate en-masse release problems.
-            if (Math.floor(Math.random() * 2) == 0 || json.urgent) {
-                show_new_version_button();
-            }
-        }
-    });
+    fetch("https://api.github.com/repos/christiansacks/moebius/releases/latest", {cache: "no-cache"})
+        .then((response) => response.json())
+        .then((json) => {
+            const remote_ver = (json.tag_name || "").replace(/^v/, "");
+            if (remote_ver && is_newer(remote_ver, remote.app.getVersion())) show_new_version_button();
+        }).catch(() => {});
 });
 
 electron.ipcRenderer.on("saved_server", (event, {server, pass}) => {
