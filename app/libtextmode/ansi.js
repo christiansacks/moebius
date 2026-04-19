@@ -346,7 +346,7 @@ class Ansi extends Textmode {
     constructor(bytes) {
         super(bytes);
         const tokens = tokenize_file({bytes: this.bytes, filesize: this.filesize});
-        if (!this.columns) this.columns = 80;
+        if (!this.columns) this.columns = detect_columns(this.bytes) || 80;
         let screen = new Screen(this.columns);
         for (const token of tokens) {
             if (token.type == token_type.LITERAL) {
@@ -490,6 +490,55 @@ function clr_to_ascii(color, output) {
 
 function push_num(output, n) {
     for (const c of String(n)) output.push(c.charCodeAt(0));
+}
+
+function detect_columns(bytes) {
+    let max_line = 0, cur_line = 0, total = 0;
+    let has_newlines = false;
+    let i = 0;
+    while (i < bytes.length) {
+        const b = bytes[i];
+        if (b === 26) break; // SUB before SAUCE
+        if (b === 27 && i + 1 < bytes.length && bytes[i + 1] === 91) { // ESC[
+            i += 2;
+            while (i < bytes.length && bytes[i] >= 0x20 && bytes[i] <= 0x3f) i++;
+            i++; // final byte
+            continue;
+        }
+        if (b === 10) { // LF
+            has_newlines = true;
+            if (cur_line > max_line) max_line = cur_line;
+            cur_line = 0;
+        } else if (b === 13) { // CR
+            cur_line = 0;
+        } else {
+            cur_line++;
+            total++;
+        }
+        i++;
+    }
+    if (cur_line > max_line) max_line = cur_line;
+
+    // File has explicit newlines and content wider than 80 — use max line length
+    if (has_newlines && max_line > 80) return max_line;
+
+    // Pure auto-wrap — factor total visible chars into landscape dimensions
+    if (!has_newlines && total > 0) {
+        let best = 0, best_score = -1;
+        for (let c = 80; c <= Math.min(2000, total); c++) {
+            if (total % c !== 0) continue;
+            if (c < total / c) continue; // require cols >= rows (landscape)
+            const score = c % 100 === 0 ? 100 : c % 80 === 0 ? 80 : c % 40 === 0 ? 40 :
+                          c % 20 === 0 ? 20 : c % 10 === 0 ? 10 : c % 5 === 0 ? 5 : 1;
+            if (score > best_score || (score === best_score && c < best)) {
+                best = c;
+                best_score = score;
+            }
+        }
+        return best;
+    }
+
+    return 0;
 }
 
 function has_extended_colors(doc) {
