@@ -162,6 +162,7 @@ class Screen {
         this.rows = 25;
         this.x = 0;
         this.y = 0;
+        this.pending_wrap = false;
         this.data = new Array(this.columns * 1000);
         this.data.fill({fg: 7, bg: 0, code: ascii.SPACE});
     }
@@ -182,6 +183,7 @@ class Screen {
     }
 
     new_line() {
+        this.pending_wrap = false;
         this.x = 0;
         this.y += 1;
     }
@@ -193,11 +195,16 @@ class Screen {
     }
 
     put({fg = 7, bg = 0, code = ascii.SPACE, fg_rgb, bg_rgb, fg_idx, bg_idx} = {}) {
+        if (this.pending_wrap) {
+            this.x = 0;
+            this.y += 1;
+            this.pending_wrap = false;
+        }
         const i = this.y * this.columns + this.x;
         if (i >= this.data.length) this.fill(1000);
         this.data[i] = {code, fg: ansi_to_bin_color(fg), bg: ansi_to_bin_color(bg), fg_rgb, bg_rgb, fg_idx, bg_idx};
         this.x += 1;
-        if (this.x == this.columns) this.new_line();
+        if (this.x == this.columns) this.pending_wrap = true;
         if (this.y + 1 > this.rows) this.rows += 1;
         this.adjust_screen();
     }
@@ -568,7 +575,7 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
             output.push(code);
         }
 
-        if (last_col < doc.columns - 1) output.push(13, 10); // CRLF only when row truncated (auto-advance handles full rows)
+        if (last_col < doc.columns - 1) output.push(13, 10);
     }
 
     const bytes = new Uint8Array(output);
@@ -678,9 +685,7 @@ function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
         if (code == 32 && bg == 0) {
             for (let j = i + 1; j < doc.data.length; j++) {
                 if (j % doc.columns == 0) {
-                    if (!utf8) {
-                        output.push(13, 10);
-                    }
+                    if (!utf8) output.push(13, 10);
                     i = j - 1;
                     break;
                 }
