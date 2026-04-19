@@ -38,8 +38,9 @@ async function new_document_window() {
     touchbar.create_touch_bars(win);
     prefs.send(win);
     win.on("focus", (event) => {
+        if (!docs[win.id]) return;
         if (darwin) {
-            if (docs[win.id] && docs[win.id].modal && !docs[win.id].modal.isDestroyed()) {
+            if (docs[win.id].modal && !docs[win.id].modal.isDestroyed()) {
                 electron.Menu.setApplicationMenu(menu.modal_menu);
             } else {
                 electron.Menu.setApplicationMenu(docs[win.id].menu);
