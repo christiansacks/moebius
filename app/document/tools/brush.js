@@ -50,7 +50,7 @@ function mouse_handler(skip_first) {
                     brushes.blink_line(mouse.x, mouse.y, x, y, button != mouse.buttons.LEFT, skip_first);
                     break;
                 case toolbar.modes.COLORIZE:
-                    brushes.colorize_line(mouse.x, mouse.y, x, y, toolbar.colorize_fg ? fg : undefined, toolbar.colorize_bg ? bg : undefined, skip_first);
+                    brushes.colorize_line(mouse.x, mouse.y, x, y, toolbar.colorize_fg ? fg : undefined, toolbar.colorize_bg ? bg : undefined, skip_first, toolbar.colorize_fg ? fg_rgb : undefined, toolbar.colorize_bg ? bg_rgb : undefined, toolbar.colorize_fg ? fg_idx : undefined, toolbar.colorize_bg ? bg_idx : undefined);
                     break;
             }
         }
@@ -81,7 +81,7 @@ function mouse_up(x, y, half_y, button, single_point, shift_key) {
                 brushes.blink_line(last_xy.x, last_xy.y, x, y, button != mouse.buttons.LEFT);
                 break;
             case toolbar.modes.COLORIZE:
-                brushes.colorize_line(last_xy.x, last_xy.y, x, y, toolbar.colorize_fg ? fg : undefined, toolbar.colorize_bg ? bg : undefined);
+                brushes.colorize_line(last_xy.x, last_xy.y, x, y, toolbar.colorize_fg ? fg : undefined, toolbar.colorize_bg ? bg : undefined, false, toolbar.colorize_fg ? fg_rgb : undefined, toolbar.colorize_bg ? bg_rgb : undefined, toolbar.colorize_fg ? fg_idx : undefined, toolbar.colorize_bg ? bg_idx : undefined);
                 break;
         }
     }

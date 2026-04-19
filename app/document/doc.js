@@ -1020,7 +1020,7 @@ class TextModeDoc extends events.EventEmitter {
         for (let y = 0; y + dy < doc.rows && y < blocks.rows; y++) {
             for (let x = 0; x + dx < doc.columns && x < blocks.columns; x++) {
                 const block = blocks.data[y * blocks.columns + x];
-                if (!blocks.transparent || block.code != 32 || block.bg != 0) this.change_data(dx + x, dy + y, block.code, block.fg, block.bg, undefined, undefined, !dont_mirror);
+                if (!blocks.transparent || block.code != 32 || block.bg != 0) this.change_data(dx + x, dy + y, block.code, block.fg, block.bg, undefined, undefined, !dont_mirror, {fg_rgb: block.fg_rgb, bg_rgb: block.bg_rgb, fg_idx: block.fg_idx, bg_idx: block.bg_idx});
             }
         }
     }

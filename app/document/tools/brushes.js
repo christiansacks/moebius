@@ -152,21 +152,21 @@ function blink_line(sx, sy, dx, dy, unblink, skip_first = false) {
     }
 }
 
-function single_colorize_line(sx, sy, dx, dy, fg, bg, skip_first = false) {
+function single_colorize_line(sx, sy, dx, dy, fg, bg, skip_first = false, fg_rgb, bg_rgb, fg_idx, bg_idx) {
     const coords = line(sx, sy, dx, dy, skip_first);
     for (const coord of coords) {
         const block = doc.at(coord.x, coord.y);
-        if (block) doc.change_data(coord.x, coord.y, block.code, (fg != undefined) ? fg : block.fg, (bg != undefined) ? bg : block.bg);
+        if (block) doc.change_data(coord.x, coord.y, block.code, (fg != undefined) ? fg : block.fg, (bg != undefined) ? bg : block.bg, undefined, undefined, true, {fg_rgb: (fg != undefined) ? fg_rgb : block.fg_rgb, bg_rgb: (bg != undefined) ? bg_rgb : block.bg_rgb, fg_idx: (fg != undefined) ? fg_idx : block.fg_idx, bg_idx: (bg != undefined) ? bg_idx : block.bg_idx});
     }
 }
 
-function colorize_line(sx, sy, dx, dy, fg, bg, skip_first = false) {
+function colorize_line(sx, sy, dx, dy, fg, bg, skip_first = false, fg_rgb, bg_rgb, fg_idx, bg_idx) {
     const coords = line(sx, sy, dx, dy, skip_first);
     for (let x = -Math.floor(toolbar.brush_size / 2); x < -Math.floor(toolbar.brush_size / 2) + toolbar.brush_size; x++) {
         for (let y = -Math.floor(toolbar.brush_size / 2); y < -Math.floor(toolbar.brush_size / 2) + toolbar.brush_size; y++) {
             for (const coord of coords) {
                 const block = doc.at(coord.x + x, coord.y + y);
-                if (block) doc.change_data(coord.x + x, coord.y + y, block.code, (fg != undefined) ? fg : block.fg, (bg != undefined) ? bg : block.bg);
+                if (block) doc.change_data(coord.x + x, coord.y + y, block.code, (fg != undefined) ? fg : block.fg, (bg != undefined) ? bg : block.bg, undefined, undefined, true, {fg_rgb: (fg != undefined) ? fg_rgb : block.fg_rgb, bg_rgb: (bg != undefined) ? bg_rgb : block.bg_rgb, fg_idx: (fg != undefined) ? fg_idx : block.fg_idx, bg_idx: (bg != undefined) ? bg_idx : block.bg_idx});
             }
         }
     }
