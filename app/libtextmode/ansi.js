@@ -592,9 +592,12 @@ function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
     let current_bg = 0;
     let current_bold = false;
     let current_blink = false;
+    let cur_utf8_fg_idx = -1, cur_utf8_bg_idx = -1;
+    let cur_utf8_fg_rgb = null, cur_utf8_bg_rgb = null;
+    const rgb_eq = (a, b) => a && b && a.r === b.r && a.g === b.g && a.b === b.b;
     for (let i = 0; i < doc.data.length; i++) {
         let attribs = [];
-        let {code, fg, bg} = doc.data[i];
+        let {code, fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx} = doc.data[i];
         if (doc.c64_background != undefined) {
             bg = doc.c64_background;
         }
@@ -606,27 +609,59 @@ function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
         default:
         }
         if (utf8) {
-            if ((fg > 7 && current_fg < 7) || (bg > 7 && current_bg < 7)) {
-                output.push(27, 91, 48, 109);
-                current_fg = 7;
-                current_bg = 0;
-            }
-            if (fg != current_fg) {
-                output.push(27, 91, 51, 56, 59, 53, 59);
-                clr_to_ascii(bin_to_ansi_colour(fg), output);
-                output.push(109);
-                current_fg = fg;
-            }
-            if (bg != current_bg) {
-                if (bg == 0) {
-                    output.push(27, 91, 52, 57, 109);
-                }
-                else {
-                    output.push(27, 91, 52, 56, 59, 53, 59);
-                    clr_to_ascii(bin_to_ansi_colour(bg), output);
+            // fg
+            if (fg_idx !== undefined) {
+                if (fg_idx !== cur_utf8_fg_idx) {
+                    output.push(27, 91, 51, 56, 59, 53, 59); // ESC[38;5;
+                    push_num(output, fg_idx);
                     output.push(109);
+                    cur_utf8_fg_idx = fg_idx; cur_utf8_fg_rgb = null; current_fg = -1;
                 }
-                current_bg = bg;
+            } else if (fg_rgb) {
+                if (!rgb_eq(fg_rgb, cur_utf8_fg_rgb)) {
+                    output.push(27, 91, 51, 56, 59, 50, 59); // ESC[38;2;
+                    push_num(output, fg_rgb.r); output.push(59);
+                    push_num(output, fg_rgb.g); output.push(59);
+                    push_num(output, fg_rgb.b); output.push(109);
+                    cur_utf8_fg_rgb = fg_rgb; cur_utf8_fg_idx = -1; current_fg = -1;
+                }
+            } else {
+                cur_utf8_fg_idx = -1; cur_utf8_fg_rgb = null;
+                if (fg != current_fg) {
+                    output.push(27, 91, 51, 56, 59, 53, 59); // ESC[38;5;
+                    clr_to_ascii(bin_to_ansi_colour(fg), output);
+                    output.push(109);
+                    current_fg = fg;
+                }
+            }
+            // bg
+            if (bg_idx !== undefined) {
+                if (bg_idx !== cur_utf8_bg_idx) {
+                    output.push(27, 91, 52, 56, 59, 53, 59); // ESC[48;5;
+                    push_num(output, bg_idx);
+                    output.push(109);
+                    cur_utf8_bg_idx = bg_idx; cur_utf8_bg_rgb = null; current_bg = -1;
+                }
+            } else if (bg_rgb) {
+                if (!rgb_eq(bg_rgb, cur_utf8_bg_rgb)) {
+                    output.push(27, 91, 52, 56, 59, 50, 59); // ESC[48;2;
+                    push_num(output, bg_rgb.r); output.push(59);
+                    push_num(output, bg_rgb.g); output.push(59);
+                    push_num(output, bg_rgb.b); output.push(109);
+                    cur_utf8_bg_rgb = bg_rgb; cur_utf8_bg_idx = -1; current_bg = -1;
+                }
+            } else {
+                cur_utf8_bg_idx = -1; cur_utf8_bg_rgb = null;
+                if (bg != current_bg) {
+                    if (bg == 0) {
+                        output.push(27, 91, 52, 57, 109); // ESC[49m
+                    } else {
+                        output.push(27, 91, 52, 56, 59, 53, 59); // ESC[48;5;
+                        clr_to_ascii(bin_to_ansi_colour(bg), output);
+                        output.push(109);
+                    }
+                    current_bg = bg;
+                }
             }
         }
         else {
