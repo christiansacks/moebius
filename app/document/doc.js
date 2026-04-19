@@ -407,6 +407,10 @@ class UndoHistory extends events.EventEmitter {
             block.code = undo.code;
             block.fg = undo.fg;
             block.bg = undo.bg;
+            block.fg_rgb = undo.fg_rgb;
+            block.bg_rgb = undo.bg_rgb;
+            block.fg_idx = undo.fg_idx;
+            block.bg_idx = undo.bg_idx;
             libtextmode.render_at(render, undo.x, undo.y, block, doc.c64_background);
             if (connection) connection.draw(undo.x, undo.y, block);
             if (undo.cursor) this.emit("move_to", undo.cursor.prev_x, undo.cursor.prev_y);
@@ -427,6 +431,10 @@ class UndoHistory extends events.EventEmitter {
             block.code = redo.code;
             block.fg = redo.fg;
             block.bg = redo.bg;
+            block.fg_rgb = redo.fg_rgb;
+            block.bg_rgb = redo.bg_rgb;
+            block.fg_idx = redo.fg_idx;
+            block.bg_idx = redo.bg_idx;
             libtextmode.render_at(render, redo.x, redo.y, block, doc.c64_background);
             if (connection) connection.draw(redo.x, redo.y, block);
             if (redo.cursor) this.emit("move_to", redo.cursor.post_x, redo.cursor.post_y);
