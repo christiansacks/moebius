@@ -5,7 +5,8 @@ const doc = require("../doc");
 const palette = require("../palette");
 const keyboard = require("../input/keyboard");
 const events = require("events");
-let interval, guide_columns, guide_rows;
+let interval, guide_columns, guide_rows, tools_instance;
+let ref_x = 0, ref_y = 0;
 
 function $(name) {
     return document.getElementById(name);
@@ -22,8 +23,13 @@ function set_var_px(name, value) {
 function open_reference_image() {
     const files = open_box({filters: [{name: "Images", extensions: ["png", "jpg", "jpeg"]}]});
     if (files) {
-        $("reference_image").style.backgroundImage = `url(${electron.nativeImage.createFromPath(files[0]).toDataURL()})`;
-        $("reference_image").style.opacity = 0.4;
+        ref_x = 0; ref_y = 0;
+        const ref = $("reference_image");
+        ref.style.backgroundImage = `url(${electron.nativeImage.createFromPath(files[0]).toDataURL()})`;
+        ref.style.opacity = 0.4;
+        ref.style.left = "0px";
+        ref.style.top = "0px";
+        $("move_reference_mode").classList.remove("ghosted");
         send("enable_reference_image");
     }
 }
@@ -33,7 +39,17 @@ function toggle_reference_image(visible) {
 }
 
 function clear_reference_image() {
-    $("reference_image").style.removeProperty("background-image");
+    ref_x = 0; ref_y = 0;
+    const ref = $("reference_image");
+    ref.style.removeProperty("background-image");
+    ref.style.pointerEvents = "";
+    ref.style.cursor = "";
+    ref.style.left = "0px";
+    ref.style.top = "0px";
+    $("move_reference_mode").classList.add("ghosted");
+    if (tools_instance && tools_instance.mode === tools_instance.modes.MOVE_REFERENCE) {
+        tools_instance.change_to_previous_mode();
+    }
     send("disable_clear_reference_image");
 }
 
@@ -343,6 +359,7 @@ class Tools extends events.EventEmitter {
             case this.modes.ELLIPSE_FILLED: return $("ellipse_mode");
             case this.modes.FILL: return $("fill_mode");
             case this.modes.SAMPLE: return $("sample_mode");
+            case this.modes.MOVE_REFERENCE: return $("move_reference_mode");
         }
     }
 
@@ -381,6 +398,9 @@ class Tools extends events.EventEmitter {
             case this.modes.LINE:
                 $("brush_size_chooser").classList.add("ghosted");
                 break;
+            case this.modes.MOVE_REFERENCE:
+                $("brush_size_chooser").classList.add("ghosted");
+                break;
         }
         this.emit("start", this.mode);
     }
@@ -392,11 +412,22 @@ class Tools extends events.EventEmitter {
 
     constructor() {
         super();
-        this.modes = {SELECT: 0, BRUSH: 1, SHIFTER: 2, LINE: 3, RECTANGLE_OUTLINE: 4, RECTANGLE_FILLED: 5, ELLIPSE_OUTLINE: 6, ELLIPSE_FILLED: 7, FILL: 8, SAMPLE: 9};
+        this.modes = {SELECT: 0, BRUSH: 1, SHIFTER: 2, LINE: 3, RECTANGLE_OUTLINE: 4, RECTANGLE_FILLED: 5, ELLIPSE_OUTLINE: 6, ELLIPSE_FILLED: 7, FILL: 8, SAMPLE: 9, MOVE_REFERENCE: 10};
+        tools_instance = this;
         on("change_to_select_mode", (event) => this.start(this.modes.SELECT));
         on("change_to_brush_mode", (event) => this.start(this.modes.BRUSH));
         on("change_to_shifter_mode", (event) => this.start(this.modes.SHIFTER));
         on("change_to_fill_mode", (event) => this.start(this.modes.FILL));
+        this.on("start", (mode) => {
+            const ref = document.getElementById("reference_image");
+            if (mode === this.modes.MOVE_REFERENCE) {
+                ref.style.pointerEvents = "auto";
+                ref.style.cursor = "grab";
+            } else {
+                ref.style.pointerEvents = "";
+                ref.style.cursor = "";
+            }
+        });
         document.addEventListener("DOMContentLoaded", (event) => {
             $("select_mode").addEventListener("mousedown", (event) => this.start(this.modes.SELECT), true);
             $("brush_mode").addEventListener("mousedown", (event) => this.start(this.modes.BRUSH), true);
@@ -420,6 +451,34 @@ class Tools extends events.EventEmitter {
             }, true);
             $("fill_mode").addEventListener("mousedown", (event) => this.start(this.modes.FILL), true);
             $("sample_mode").addEventListener("mousedown", (event) => this.start(this.modes.SAMPLE), true);
+            $("move_reference_mode").addEventListener("mousedown", (event) => this.start(this.modes.MOVE_REFERENCE), true);
+            const ref = $("reference_image");
+            ref.addEventListener("mousedown", (event) => {
+                if (this.mode !== this.modes.MOVE_REFERENCE) return;
+                event.preventDefault();
+                const start_x = event.clientX - ref_x;
+                const start_y = event.clientY - ref_y;
+                ref.style.cursor = "grabbing";
+                const on_move = (e) => {
+                    ref_x = e.clientX - start_x;
+                    ref_y = e.clientY - start_y;
+                    ref.style.left = `${ref_x}px`;
+                    ref.style.top = `${ref_y}px`;
+                };
+                const on_up = () => {
+                    document.removeEventListener("mousemove", on_move);
+                    document.removeEventListener("mouseup", on_up);
+                    if (this.mode === this.modes.MOVE_REFERENCE) ref.style.cursor = "grab";
+                };
+                document.addEventListener("mousemove", on_move);
+                document.addEventListener("mouseup", on_up);
+            });
+            ref.addEventListener("dblclick", (event) => {
+                if (this.mode !== this.modes.MOVE_REFERENCE) return;
+                ref_x = 0; ref_y = 0;
+                ref.style.left = "0px";
+                ref.style.top = "0px";
+            });
         });
     }
 }

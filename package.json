@@ -1,6 +1,6 @@
 {
   "name": "moebius",
-  "version": "1.1.7",
+  "version": "1.2.0",
   "description": "Modern ANSI Art Editor",
   "repository": {
     "type": "git",
@@ -16,7 +16,7 @@
     "build-linux": "node_modules/.bin/electron-builder -l",
     "rebuild": "node_modules/.bin/electron-builder node-gyp-rebuild"
   },
-  "author": "Andy Herbert <andy.herbert@gmail.com>",
+  "author": "Christian Sacks <ml@erb.pw>",
   "license": "Apache-2.0",
   "devDependencies": {
     "browserify": "^17.0.1",

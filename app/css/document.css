@@ -77,6 +77,14 @@ body.dark .tool.selected {
 #sample_mode {
     background-image: url("../img/sample.png");
 }
+#move_reference_mode {
+    background-image: url("../img/move_reference.svg");
+}
+.tool.ghosted {
+    opacity: 0.2;
+    pointer-events: none;
+    cursor: default;
+}
 #sidebar, #toolbar {
     background-color: var(--mid-color);
 }
