@@ -75,12 +75,15 @@ function has_c64_palette(palette) {
 
 function build_palette_256() {
     const p = [];
-    // 0-15: IBM VGA palette (matches ega[] used for 16-colour rendering)
+    // 0-15: xterm/ANSI index order with IBM VGA RGB values.
+    // Indices 0-15 in 256-colour sequences follow xterm convention (1=red, 4=blue, etc.),
+    // NOT IBM VGA order (where 1=blue, 4=red). Using IBM VGA RGB values keeps colours
+    // visually consistent with the 16-colour palette while indexing correctly.
     const ansi16 = [
-        {r:0,g:0,b:0},     {r:0,g:0,b:170},   {r:0,g:170,b:0},   {r:0,g:170,b:170},
-        {r:170,g:0,b:0},   {r:170,g:0,b:170},  {r:170,g:85,b:0},  {r:170,g:170,b:170},
-        {r:85,g:85,b:85},  {r:85,g:85,b:255},  {r:85,g:255,b:85}, {r:85,g:255,b:255},
-        {r:255,g:85,b:85}, {r:255,g:85,b:255}, {r:255,g:255,b:85},{r:255,g:255,b:255}
+        {r:0,g:0,b:0},       {r:170,g:0,b:0},   {r:0,g:170,b:0},   {r:170,g:85,b:0},
+        {r:0,g:0,b:170},     {r:170,g:0,b:170},  {r:0,g:170,b:170}, {r:170,g:170,b:170},
+        {r:85,g:85,b:85},    {r:255,g:85,b:85},  {r:85,g:255,b:85}, {r:255,g:255,b:85},
+        {r:85,g:85,b:255},   {r:255,g:85,b:255}, {r:85,g:255,b:255},{r:255,g:255,b:255}
     ];
     for (const c of ansi16) p.push(c);
     // 16-231: 6x6x6 color cube

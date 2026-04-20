@@ -413,6 +413,15 @@ class Ansi extends Textmode {
                             screen.bg = value - sgr_types.CHANGE_BG_START;
                             screen.bg_rgb = undefined;
                             screen.bg_idx = undefined;
+                        } else if (value >= 90 && value <= 97) {
+                            screen.fg = value - 90;
+                            screen.bold = true;
+                            screen.fg_rgb = undefined;
+                            screen.fg_idx = undefined;
+                        } else if (value >= 100 && value <= 107) {
+                            screen.bg = value - 100 + 8;
+                            screen.bg_rgb = undefined;
+                            screen.bg_idx = undefined;
                         } else {
                             switch (value) {
                                 case sgr_types.RESET_ATTRIBUTES: screen.reset_attributes(); break;

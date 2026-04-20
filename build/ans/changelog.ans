@@ -1,6 +1,13 @@
 [0m
                  [1mChangelog[0m
 
+           Ver. 1.2.1 2026-04-20
+
+ [1mFix: [0mFix 256-colour index mapping    
+   blue/red, cyan/yellow swap
+
+                    	 
+
            Ver. 1.2.0 2026-04-20
 
  [1mFeature: [0mMake the reference image movable
