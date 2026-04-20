@@ -316,10 +316,12 @@ function overwrite_mode(value) {
 }
 
 function extended_colors(value) {
+    set_text("extended_colors_status", value ? "On" : "Off");
     send("update_menu_checkboxes", {extended_colors: value});
 }
 
 function xterm_base16(value) {
+    set_text("xterm_base16_status", value ? "On" : "Off");
     send("update_menu_checkboxes", {xterm_base16: value});
 }
 
@@ -350,6 +352,8 @@ on("actual_size", (event) => actual_size());
 document.addEventListener("DOMContentLoaded", (event) => {
     $("use_9px_font_toggle").addEventListener("mousedown", (event) => doc.use_9px_font = !doc.use_9px_font, true);
     $("ice_colors_toggle").addEventListener("mousedown", (event) => doc.ice_colors = !doc.ice_colors, true);
+    $("extended_colors_toggle").addEventListener("mousedown", (event) => doc.extended_colors = !doc.extended_colors, true);
+    $("xterm_base16_toggle").addEventListener("mousedown", (event) => doc.xterm_base16 = !doc.xterm_base16, true);
 }, true);
 
 class Tools extends events.EventEmitter {

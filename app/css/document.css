@@ -331,17 +331,19 @@ body.dark #statusbar > div > div {
 }
 #left_info {
     float: left;
-    width: 300px;
+    display: flex;
+    width: 450px;
 }
 #left_info > div {
-    padding-left: 8px;
-    width: 110px;
+    padding: 0 8px;
+    white-space: nowrap;
     cursor: pointer;
+    flex-shrink: 0;
 }
 #mid_info {
     float: left;
     text-align: center;
-    width: calc(100% - 630px);
+    width: calc(100% - 780px);
 }
 #right_info {
     float: right;
