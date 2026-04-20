@@ -297,6 +297,7 @@ function colors_menu_template(win) {
             {type: "separator"},
             {label: "Use iCE Colors", id: "ice_colors", accelerator: "CmdorCtrl+E", click(item) {win.send("ice_colors", item.checked);}, type: "checkbox", checked: false},
             {label: "Extended Colors (256/True-Color)", id: "extended_colors", accelerator: "CmdorCtrl+Shift+E", click(item) {win.send("extended_colors", item.checked);}, type: "checkbox", checked: false},
+            {label: "Interpret base-16 as xterm (legacy)", id: "xterm_base16", accelerator: "CmdorCtrl+Shift+L", click(item) {win.send("xterm_base16", item.checked);}, type: "checkbox", checked: false},
             {type: "separator"},
             {label: "Remove iCE Colors as New Document", id: "remove_ice_colors", click(item) {win.send("remove_ice_colors");}},
         ]
@@ -590,7 +591,7 @@ electron.ipcMain.on("enable_editing_shortcuts", (event, {id}) => {
     enable(id, "select_attribute");
 });
 
-electron.ipcMain.on("update_menu_checkboxes", (event, {id, insert_mode, overwrite_mode, use_9px_font, ice_colors, extended_colors, actual_size, font_name}) => {
+electron.ipcMain.on("update_menu_checkboxes", (event, {id, insert_mode, overwrite_mode, use_9px_font, ice_colors, extended_colors, xterm_base16, actual_size, font_name}) => {
     if (insert_mode != undefined) set_check(id, "toggle_insert_mode", insert_mode);
     if (overwrite_mode != undefined) set_check(id, "overwrite_mode", overwrite_mode);
     if (use_9px_font != undefined) set_check(id, "use_9px_font", use_9px_font);
@@ -599,6 +600,7 @@ electron.ipcMain.on("update_menu_checkboxes", (event, {id, insert_mode, overwrit
         set_check(id, "extended_colors", extended_colors);
         if (extended_colors) disable(id, "share_online"); else enable(id, "share_online");
     }
+    if (xterm_base16 != undefined) set_check(id, "xterm_base16", xterm_base16);
     if (actual_size != undefined) set_check(id, "actual_size", actual_size);
     if (font_name != undefined) {
         if (font_names[id]) uncheck(id, font_names[id]);

@@ -319,14 +319,20 @@ function extended_colors(value) {
     send("update_menu_checkboxes", {extended_colors: value});
 }
 
+function xterm_base16(value) {
+    send("update_menu_checkboxes", {xterm_base16: value});
+}
+
 doc.on("new_document", () => {
     ice_colors(doc.ice_colors);
     use_9px_font(doc.use_9px_font);
     change_font(doc.font_name);
     extended_colors(doc.extended_colors);
+    xterm_base16(doc.xterm_base16 || false);
 });
 doc.on("ice_colors", (value) => ice_colors(value));
 doc.on("extended_colors", (value) => extended_colors(value));
+doc.on("xterm_base16", (value) => xterm_base16(value));
 doc.on("use_9px_font", (value) => use_9px_font(value));
 doc.on("change_font", (font_name) => change_font(font_name));
 keyboard.on("insert", (value) => insert_mode(value));

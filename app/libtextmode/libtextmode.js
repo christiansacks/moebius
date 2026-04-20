@@ -1,6 +1,6 @@
 const {Font} = require("./font");
 const {create_canvas, join_canvases} = require("./canvas");
-const {Ansi, encode_as_ansi} = require("./ansi");
+const {Ansi, encode_as_ansi, ansi_to_bin_color} = require("./ansi");
 const {BinaryText, encode_as_bin} = require("./binary_text");
 const {XBin, encode_as_xbin} = require("./xbin");
 const {ega, c64, convert_ega_to_style, has_ansi_palette, has_c64_palette} = require("./palette");
@@ -38,8 +38,25 @@ async function next_frame() {
     return new Promise((resolve) => window.requestAnimationFrame(resolve));
 }
 
-function visible_block(block, extended_colors) {
-    if (extended_colors || (!block.fg_rgb && !block.bg_rgb)) return block;
+function visible_block(block, extended_colors, xterm_base16) {
+    if (extended_colors || (!block.fg_rgb && !block.bg_rgb)) {
+        if (xterm_base16 && ((block.fg_idx !== undefined && block.fg_idx < 16) ||
+                              (block.bg_idx !== undefined && block.bg_idx < 16))) {
+            const b = Object.assign({}, block);
+            if (b.fg_idx !== undefined && b.fg_idx < 16) {
+                b.fg = ansi_to_bin_color(b.fg_idx);
+                b.fg_idx = undefined;
+                b.fg_rgb = undefined;
+            }
+            if (b.bg_idx !== undefined && b.bg_idx < 16) {
+                b.bg = ansi_to_bin_color(b.bg_idx);
+                b.bg_idx = undefined;
+                b.bg_rgb = undefined;
+            }
+            return b;
+        }
+        return block;
+    }
     return {code: block.code, fg: block.fg, bg: block.bg};
 }
 
@@ -49,7 +66,7 @@ async function animate({file, ctx}) {
     await font.load({name: doc.font_name, bytes: doc.font_bytes, use_9px_font: doc.use_9px_font});
     for (let y = 0, py = 0, i = 0; y < doc.rows; y++, py += font.height) {
         for (let x = 0, px = 0; x < doc.columns; x++, px += font.width, i++) {
-            const block = visible_block(doc.data[i], doc.extended_colors);
+            const block = visible_block(doc.data[i], doc.extended_colors, doc.xterm_base16);
             if (block.bg >= 8 && !doc.ice_colors) {
                 font.draw(ctx, {fg: block.fg, bg: block.bg - 8, code: block.code}, px, py);
             } else {
@@ -100,7 +117,7 @@ async function render(doc) {
     const {canvas, ctx} = create_canvas(font.width * doc.columns, font.height * doc.rows);
     for (let y = 0, py = 0, i = 0; y < doc.rows; y++, py += font.height) {
         for (let x = 0, px = 0; x < doc.columns; x++, px += font.width, i++) {
-            const block = visible_block(doc.data[i], doc.extended_colors);
+            const block = visible_block(doc.data[i], doc.extended_colors, doc.xterm_base16);
             if (doc.c64_background == undefined && block.bg >= 8 && !doc.ice_colors) {
                 font.draw(ctx, {fg: block.fg, bg: block.bg - 8, code: block.code}, px, py, doc.c64_background);
             } else {
@@ -156,7 +173,7 @@ async function render_split(doc, maximum_rows = 100) {
             canvas_i += 1;
         }
         for (let x = 0, px = 0; x < doc.columns; x++, px += font.width, i++) {
-            font.draw(ctxs[canvas_i], visible_block(doc.data[i], doc.extended_colors), px, py, doc.c64_background);
+            font.draw(ctxs[canvas_i], visible_block(doc.data[i], doc.extended_colors, doc.xterm_base16), px, py, doc.c64_background);
         }
     }
     const blink_on_collection = copy_canvases(canvases);
@@ -185,7 +202,8 @@ async function render_split(doc, maximum_rows = 100) {
         preview_collection: copy_canvases(canvases).map((collection => collection.canvas)),
         maximum_rows,
         font: font,
-        extended_colors: doc.extended_colors
+        extended_colors: doc.extended_colors,
+        xterm_base16: doc.xterm_base16
     };
 }
 
@@ -193,7 +211,7 @@ function render_at(render, x, y, block, c64_background) {
     const i = Math.floor(y / render.maximum_rows);
     const px = x * render.font.width;
     const py = (y % render.maximum_rows) * render.font.height;
-    const vblock = visible_block(block, render.extended_colors);
+    const vblock = visible_block(block, render.extended_colors, render.xterm_base16);
     render.font.draw(render.ice_color_collection[i].getContext("2d"), vblock, px, py, c64_background);
     render.font.draw(render.preview_collection[i].getContext("2d"), vblock, px, py, c64_background);
     if (c64_background != undefined || vblock.bg < 8) {

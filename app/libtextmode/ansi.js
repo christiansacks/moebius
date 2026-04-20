@@ -413,15 +413,6 @@ class Ansi extends Textmode {
                             screen.bg = value - sgr_types.CHANGE_BG_START;
                             screen.bg_rgb = undefined;
                             screen.bg_idx = undefined;
-                        } else if (value >= 90 && value <= 97) {
-                            screen.fg = value - 90;
-                            screen.bold = true;
-                            screen.fg_rgb = undefined;
-                            screen.fg_idx = undefined;
-                        } else if (value >= 100 && value <= 107) {
-                            screen.bg = value - 100 + 8;
-                            screen.bg_rgb = undefined;
-                            screen.bg_idx = undefined;
                         } else {
                             switch (value) {
                                 case sgr_types.RESET_ATTRIBUTES: screen.reset_attributes(); break;
@@ -558,6 +549,7 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
     const output = [27, 91, 48, 109]; // ESC[0m
     let cur_fg_idx = -1, cur_bg_idx = -1;
     let cur_fg_rgb = null, cur_bg_rgb = null;
+    let cur_fg_sgr = -1, cur_bg_sgr = -1;
     const rgb_eq = (a, b) => a && b && a.r === b.r && a.g === b.g && a.b === b.b;
 
     for (let row = 0; row < doc.rows; row++) {
@@ -584,7 +576,7 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
                     output.push(27, 91, 51, 56, 59, 53, 59); // ESC[38;5;
                     push_num(output, fg_idx);
                     output.push(109);
-                    cur_fg_idx = fg_idx; cur_fg_rgb = null;
+                    cur_fg_idx = fg_idx; cur_fg_rgb = null; cur_fg_sgr = -1;
                 }
             } else if (fg_rgb) {
                 if (!rgb_eq(fg_rgb, cur_fg_rgb)) {
@@ -592,15 +584,14 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
                     push_num(output, fg_rgb.r); output.push(59);
                     push_num(output, fg_rgb.g); output.push(59);
                     push_num(output, fg_rgb.b); output.push(109);
-                    cur_fg_rgb = fg_rgb; cur_fg_idx = -1;
+                    cur_fg_rgb = fg_rgb; cur_fg_idx = -1; cur_fg_sgr = -1;
                 }
             } else {
-                const ansi_fg = bin_to_ansi_colour(fg);
-                if (ansi_fg !== cur_fg_idx) {
-                    output.push(27, 91, 51, 56, 59, 53, 59); // ESC[38;5;
-                    push_num(output, ansi_fg);
-                    output.push(109);
-                    cur_fg_idx = ansi_fg; cur_fg_rgb = null;
+                const ai = bin_to_ansi_colour(fg);
+                const sgr = ai < 8 ? 30 + ai : 90 + (ai - 8);
+                if (sgr !== cur_fg_sgr) {
+                    output.push(27, 91); push_num(output, sgr); output.push(109);
+                    cur_fg_sgr = sgr; cur_fg_idx = -1; cur_fg_rgb = null;
                 }
             }
 
@@ -610,7 +601,7 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
                     output.push(27, 91, 52, 56, 59, 53, 59); // ESC[48;5;
                     push_num(output, bg_idx);
                     output.push(109);
-                    cur_bg_idx = bg_idx; cur_bg_rgb = null;
+                    cur_bg_idx = bg_idx; cur_bg_rgb = null; cur_bg_sgr = -1;
                 }
             } else if (bg_rgb) {
                 if (!rgb_eq(bg_rgb, cur_bg_rgb)) {
@@ -618,15 +609,14 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
                     push_num(output, bg_rgb.r); output.push(59);
                     push_num(output, bg_rgb.g); output.push(59);
                     push_num(output, bg_rgb.b); output.push(109);
-                    cur_bg_rgb = bg_rgb; cur_bg_idx = -1;
+                    cur_bg_rgb = bg_rgb; cur_bg_idx = -1; cur_bg_sgr = -1;
                 }
             } else {
-                const ansi_bg = bin_to_ansi_colour(bg);
-                if (ansi_bg !== cur_bg_idx) {
-                    output.push(27, 91, 52, 56, 59, 53, 59); // ESC[48;5;
-                    push_num(output, ansi_bg);
-                    output.push(109);
-                    cur_bg_idx = ansi_bg; cur_bg_rgb = null;
+                const ai = bin_to_ansi_colour(bg);
+                const sgr = ai < 8 ? 40 + ai : 100 + (ai - 8);
+                if (sgr !== cur_bg_sgr) {
+                    output.push(27, 91); push_num(output, sgr); output.push(109);
+                    cur_bg_sgr = sgr; cur_bg_idx = -1; cur_bg_rgb = null;
                 }
             }
 
@@ -806,4 +796,4 @@ function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
     return bytes;
 }
 
-module.exports = {Ansi, encode_as_ansi};
+module.exports = {Ansi, encode_as_ansi, ansi_to_bin_color};

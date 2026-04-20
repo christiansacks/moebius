@@ -733,6 +733,7 @@ class TextModeDoc extends events.EventEmitter {
     get font_name() {return doc.font_name;}
     get ice_colors() {return doc.ice_colors;}
     get extended_colors() {return doc.extended_colors;}
+    get xterm_base16() {return doc.xterm_base16;}
     get use_9px_font() {return doc.use_9px_font;}
     get data() {return doc.data;}
     get c64_background() {return doc.c64_background;}
@@ -781,6 +782,12 @@ class TextModeDoc extends events.EventEmitter {
         doc.extended_colors = value;
         if (render) render.extended_colors = value;
         this.start_rendering().then(() => this.emit("extended_colors", doc.extended_colors));
+    }
+
+    set xterm_base16(value) {
+        doc.xterm_base16 = value;
+        if (render) render.xterm_base16 = value;
+        this.start_rendering().then(() => this.emit("xterm_base16", doc.xterm_base16));
     }
 
     at(x, y) {
@@ -1170,6 +1177,7 @@ class TextModeDoc extends events.EventEmitter {
         this.undo_history.on("resize", () => this.start_rendering());
         on("ice_colors", (event, value) => this.ice_colors = value);
         on("extended_colors", (event, value) => this.extended_colors = value);
+        on("xterm_base16", (event, value) => this.xterm_base16 = value);
         on("use_9px_font", (event, value) => this.use_9px_font = value);
         on("change_font", (event, font_name) => this.font_name = font_name);
         on("get_sauce_info", (event) => send_sync("get_sauce_info", {title: doc.title, author: doc.author, group: doc.group, comments: doc.comments}));
