@@ -15,9 +15,11 @@ class PaletteChooser extends events.EventEmitter {
         if (this.fg_value != undefined && this.divs) this.divs[this.fg_value].classList.remove("selected_fg");
         this.divs[value].classList.add("selected_fg");
         document.getElementById("fg").style.backgroundColor = this.divs[value].style.backgroundColor;
+        const prev = this.fg_idx;
         this.fg_value = value;
         this.fg_rgb = null;
         this.fg_idx = null;
+        this._update_picker_highlights(prev, this.bg_idx);
         this.emit("set_fg", this.fg_value);
     }
 
@@ -27,9 +29,11 @@ class PaletteChooser extends events.EventEmitter {
         if (this.bg_value != undefined && this.divs) this.divs[this.bg_value].classList.remove("selected_bg");
         this.divs[value].classList.add("selected_bg");
         document.getElementById("bg").style.backgroundColor = this.divs[value].style.backgroundColor;
+        const prev = this.bg_idx;
         this.bg_value = value;
         this.bg_rgb = null;
         this.bg_idx = null;
+        this._update_picker_highlights(this.fg_idx, prev);
         this.emit("set_bg", this.bg_value);
         if (libtextmode.has_c64_palette(doc.palette)) {
             doc.c64_background = this.bg_value;
@@ -54,21 +58,25 @@ class PaletteChooser extends events.EventEmitter {
 
     set_extended_fg(idx) {
         if (this.fg_value != undefined && this.divs) this.divs[this.fg_value].classList.remove("selected_fg");
+        const prev = this.fg_idx;
         this.fg_idx = idx;
         this.fg_rgb = palette_256[idx];
         const {r, g, b} = this.fg_rgb;
         document.getElementById("fg").style.backgroundColor = `rgb(${r},${g},${b})`;
         if (!doc.extended_colors) doc.extended_colors = true;
+        this._update_picker_highlights(prev, this.bg_idx);
         this.emit("set_fg", this.fg_value);
     }
 
     set_extended_bg(idx) {
         if (this.bg_value != undefined && this.divs) this.divs[this.bg_value].classList.remove("selected_bg");
+        const prev = this.bg_idx;
         this.bg_idx = idx;
         this.bg_rgb = palette_256[idx];
         const {r, g, b} = this.bg_rgb;
         document.getElementById("bg").style.backgroundColor = `rgb(${r},${g},${b})`;
         if (!doc.extended_colors) doc.extended_colors = true;
+        this._update_picker_highlights(this.fg_idx, prev);
         this.emit("set_bg", this.bg_value);
     }
 
@@ -106,12 +114,39 @@ class PaletteChooser extends events.EventEmitter {
         return -1;
     }
 
+    _refresh_picker_cell(idx) {
+        if (!this._picker_canvas || idx === null || idx === undefined || idx < 0 || idx >= 256) return;
+        const ctx = this._picker_canvas.getContext("2d");
+        const {x, y} = this._picker_canvas_xy(idx);
+        const c = palette_256[idx];
+        ctx.fillStyle = `rgb(${c.r},${c.g},${c.b})`;
+        ctx.fillRect(x, y, CELL, CELL);
+        if (this.fg_idx === idx) {
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(x + 0.75, y + 0.75, CELL - 1.5, CELL - 1.5);
+        }
+        if (this.bg_idx === idx) {
+            ctx.strokeStyle = "#ff0";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x + 2.5, y + 2.5, CELL - 5, CELL - 5);
+        }
+    }
+
+    _update_picker_highlights(prev_fg, prev_bg) {
+        if (!this._picker_canvas) return;
+        const cells = new Set([prev_fg, prev_bg, this.fg_idx, this.bg_idx]
+            .filter(i => i !== null && i !== undefined && i >= 0 && i < 256));
+        cells.forEach(i => this._refresh_picker_cell(i));
+    }
+
     _build_picker_canvas() {
         const cw = COLS * (CELL + GAP) - GAP;
         const ch = 16 * (CELL + GAP) - GAP + SG;
         const canvas = document.createElement("canvas");
         canvas.width = cw;
         canvas.height = ch;
+        this._picker_canvas = canvas;
         const ctx = canvas.getContext("2d");
         for (let i = 0; i < 256; i++) {
             const {x, y} = this._picker_canvas_xy(i);
@@ -123,6 +158,7 @@ class PaletteChooser extends events.EventEmitter {
         const sep_y = (CELL + GAP) + Math.floor(SG / 2);
         ctx.fillStyle = "rgba(255,255,255,0.25)";
         ctx.fillRect(0, sep_y, cw, 1);
+        this._update_picker_highlights(null, null);
         return canvas;
     }
 
