@@ -82,10 +82,10 @@ mouse.on("up", (x, y, half_y, button) => {
                 brushes.single_custom_block_line(mouse.start.x, mouse.start.y, x, y, fg, bg, false, {fg_rgb, bg_rgb, fg_idx, bg_idx});
                 break;
             case toolbar.modes.SHADING_BLOCK:
-                brushes.single_shading_block_line(mouse.start.x, mouse.start.y, x, y, fg, bg, button != mouse.buttons.LEFT);
+                brushes.single_shading_block_line(mouse.start.x, mouse.start.y, x, y, fg, bg, button != mouse.buttons.LEFT, false, {fg_rgb, bg_rgb, fg_idx, bg_idx});
                 break;
             case toolbar.modes.REPLACE_COLOR:
-                brushes.single_replace_color_line(mouse.start.x, mouse.start.y, x, y, fg, bg);
+                brushes.single_replace_color_line(mouse.start.x, mouse.start.y, x, y, fg, bg, false, fg_rgb, fg_idx, bg_rgb, bg_idx);
                 break;
             case toolbar.modes.BLINK:
                 brushes.single_blink_line(mouse.start.x, mouse.start.y, x, y, button != mouse.buttons.LEFT);

@@ -41,10 +41,10 @@ function mouse_handler(skip_first) {
                     brushes.custom_block_line(mouse.x, mouse.y, x, y, fg, bg, skip_first, colors_ext);
                     break;
                 case toolbar.modes.SHADING_BLOCK:
-                    brushes.shading_block_line(mouse.x, mouse.y, x, y, fg, bg, button != mouse.buttons.LEFT, skip_first);
+                    brushes.shading_block_line(mouse.x, mouse.y, x, y, fg, bg, button != mouse.buttons.LEFT, skip_first, colors_ext);
                     break;
                 case toolbar.modes.REPLACE_COLOR:
-                    brushes.replace_color_line(mouse.x, mouse.y, x, y, fg, bg, skip_first);
+                    brushes.replace_color_line(mouse.x, mouse.y, x, y, fg, bg, skip_first, fg_rgb, fg_idx, bg_rgb, bg_idx);
                     break;
                 case toolbar.modes.BLINK:
                     brushes.blink_line(mouse.x, mouse.y, x, y, button != mouse.buttons.LEFT, skip_first);
@@ -72,10 +72,10 @@ function mouse_up(x, y, half_y, button, single_point, shift_key) {
                 brushes.custom_block_line(last_xy.x, last_xy.y, x, y, fg, bg, false, colors_ext);
                 break;
             case toolbar.modes.SHADING_BLOCK:
-                brushes.shading_block_line(last_xy.x, last_xy.y, x, y, fg, bg, button != mouse.buttons.LEFT);
+                brushes.shading_block_line(last_xy.x, last_xy.y, x, y, fg, bg, button != mouse.buttons.LEFT, false, colors_ext);
                 break;
             case toolbar.modes.REPLACE_COLOR:
-                brushes.replace_color_line(last_xy.x, last_xy.y, x, y, fg, bg);
+                brushes.replace_color_line(last_xy.x, last_xy.y, x, y, fg, bg, false, fg_rgb, fg_idx, bg_rgb, bg_idx);
                 break;
             case toolbar.modes.BLINK:
                 brushes.blink_line(last_xy.x, last_xy.y, x, y, button != mouse.buttons.LEFT);

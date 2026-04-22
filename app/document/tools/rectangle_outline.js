@@ -129,22 +129,22 @@ mouse.on("up", (x, y, half_y, button) => {
                 break;
             case toolbar.modes.SHADING_BLOCK:
                 const reduce = (button != mouse.buttons.LEFT);
-                brushes.single_shading_block_line(sx, sy, dx, sy, fg, bg, reduce);
+                brushes.single_shading_block_line(sx, sy, dx, sy, fg, bg, reduce, false, colors_ext);
                 if (dy > sy) {
-                    brushes.single_shading_block_line(sx, dy, dx, dy, fg, bg, reduce);
+                    brushes.single_shading_block_line(sx, dy, dx, dy, fg, bg, reduce, false, colors_ext);
                     if (dy > sy + 1) {
-                        brushes.single_shading_block_line(sx, sy + 1, sx, dy - 1, fg, bg, reduce);
-                        brushes.single_shading_block_line(dx, sy + 1, dx, dy - 1, fg, bg, reduce);
+                        brushes.single_shading_block_line(sx, sy + 1, sx, dy - 1, fg, bg, reduce, false, colors_ext);
+                        brushes.single_shading_block_line(dx, sy + 1, dx, dy - 1, fg, bg, reduce, false, colors_ext);
                     }
                 }
                 break;
             case toolbar.modes.REPLACE_COLOR:
-                brushes.single_replace_color_line(sx, sy, dx, sy, fg, bg);
+                brushes.single_replace_color_line(sx, sy, dx, sy, fg, bg, false, fg_rgb, fg_idx, bg_rgb, bg_idx);
                 if (dy > sy) {
-                    brushes.single_replace_color_line(sx, dy, dx, dy, fg, bg);
+                    brushes.single_replace_color_line(sx, dy, dx, dy, fg, bg, false, fg_rgb, fg_idx, bg_rgb, bg_idx);
                     if (dy > sy + 1) {
-                        brushes.single_replace_color_line(sx, sy + 1, sx, dy - 1, fg, bg);
-                        brushes.single_replace_color_line(dx, sy + 1, dx, dy - 1, fg, bg);
+                        brushes.single_replace_color_line(sx, sy + 1, sx, dy - 1, fg, bg, false, fg_rgb, fg_idx, bg_rgb, bg_idx);
+                        brushes.single_replace_color_line(dx, sy + 1, dx, dy - 1, fg, bg, false, fg_rgb, fg_idx, bg_rgb, bg_idx);
                     }
                 }
                 break;

@@ -219,7 +219,7 @@ function render_at(render, x, y, block, c64_background) {
         render.font.draw(render.blink_off_collection[i].getContext("2d"), vblock, px, py, c64_background);
     } else {
         render.font.draw_bg(render.blink_on_collection[i].getContext("2d"), vblock.bg - 8, px, py, c64_background);
-        render.font.draw(render.blink_off_collection[i].getContext("2d"), {code: vblock.code, fg: vblock.fg, bg: vblock.bg - 8}, px, py, c64_background);
+        render.font.draw(render.blink_off_collection[i].getContext("2d"), {code: vblock.code, fg: vblock.fg, bg: vblock.bg - 8, fg_rgb: vblock.fg_rgb, bg_rgb: vblock.bg_rgb, fg_idx: vblock.fg_idx, bg_idx: vblock.bg_idx}, px, py, c64_background);
     }
 }
 

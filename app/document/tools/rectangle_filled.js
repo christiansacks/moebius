@@ -89,10 +89,10 @@ mouse.on("up", (x, y, half_y, button) => {
                 break;
             case toolbar.modes.SHADING_BLOCK:
                 const reduce = (button != mouse.buttons.LEFT);
-                for (let y = sy; y <= dy; y++) brushes.single_shading_block_line(sx, y, dx, y, fg, bg, reduce);
+                for (let y = sy; y <= dy; y++) brushes.single_shading_block_line(sx, y, dx, y, fg, bg, reduce, false, colors_ext);
                 break;
             case toolbar.modes.REPLACE_COLOR:
-                for (let y = sy; y <= dy; y++) brushes.single_replace_color_line(sx, y, dx, y, fg, bg);
+                for (let y = sy; y <= dy; y++) brushes.single_replace_color_line(sx, y, dx, y, fg, bg, false, fg_rgb, fg_idx, bg_rgb, bg_idx);
                 break;
             case toolbar.modes.BLINK:
                 for (let y = sy; y <= dy; y++) brushes.single_blink_line(sx, y, dx, y, button != mouse.buttons.LEFT);
