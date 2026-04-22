@@ -966,7 +966,7 @@ class TextModeDoc extends events.EventEmitter {
             this.undo_history.start_chunk();
             for (let x = 0; x < doc.columns - count; x++) {
                 const block = doc.data[y * doc.columns + x + count];
-                this.change_data(x, y, block.code, block.fg, block.bg);
+                this.change_data(x, y, block.code, block.fg, block.bg, undefined, undefined, true, {fg_rgb: block.fg_rgb, bg_rgb: block.bg_rgb, fg_idx: block.fg_idx, bg_idx: block.bg_idx});
             }
             for (let x = doc.columns - count; x < doc.columns; x++) this.change_data(x, y, 32, 7, 0);
         }
@@ -978,7 +978,7 @@ class TextModeDoc extends events.EventEmitter {
             this.undo_history.start_chunk();
             for (let x = doc.columns - 1; x > count - 1; x--) {
                 const block = doc.data[y * doc.columns + x - count];
-                this.change_data(x, y, block.code, block.fg, 0);
+                this.change_data(x, y, block.code, block.fg, 0, undefined, undefined, true, {fg_rgb: block.fg_rgb, fg_idx: block.fg_idx});
             }
             for (let x = count - 1; x >= 0; x--) this.change_data(x, y, 32, 7, 0);
         }
@@ -993,7 +993,7 @@ class TextModeDoc extends events.EventEmitter {
             for (let i = 0; i < blocks.length; i++) blocks[i] = Object.assign(doc.data[y * doc.columns + left + i]);
             const new_left = Math.floor((left + right) / 2);
             for (let x = 0; x < new_left; x++) this.change_data(x, y, 32, 7, 0);
-            for (let x = 0; x < blocks.length; x++) this.change_data(new_left + x, y, blocks[x].code, blocks[x].fg, blocks[x].bg);
+            for (let x = 0; x < blocks.length; x++) this.change_data(new_left + x, y, blocks[x].code, blocks[x].fg, blocks[x].bg, undefined, undefined, true, {fg_rgb: blocks[x].fg_rgb, bg_rgb: blocks[x].bg_rgb, fg_idx: blocks[x].fg_idx, bg_idx: blocks[x].bg_idx});
             for (let x = 0; x < doc.columns - new_left - blocks.length; x++) this.change_data(new_left + blocks.length + x, y, 32, 7, 0);
         }
     }
