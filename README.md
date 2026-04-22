@@ -2,7 +2,7 @@
 ![Moebius Screenshot](docs/screenshot.png)
 # Moebius
 
-Moebius is an ANSI Editor for MacOS, Linux and Windows. The major feature that differentiates it from [PabloDraw](https://github.com/blocktronics/pablodraw) is the 'half-block' brush which allows editing in a style closer to Photoshop than a text editor, although you can still use the function and cursor keys to draw with, and you should find that most of the text editing features from PabloDraw are carried over to this editor. The editor is still a work in progress, but anyone who wants to try using it is also encouraged to [log feature requests and bugs](https://github.com/christiansacks/moebius/issues) on the project's GitHub page.
+Moebius is an ANSI Editor, with true colour support, for MacOS, Linux and Windows. The major feature that differentiates it from [PabloDraw](https://github.com/blocktronics/pablodraw) is the 'half-block' brush which allows editing in a style closer to Photoshop than a text editor, although you can still use the function and cursor keys to draw with, and you should find that most of the text editing features from PabloDraw are carried over to this editor. The editor is still a work in progress, but anyone who wants to try using it is also encouraged to [log feature requests and bugs](https://github.com/christiansacks/moebius/issues) on the project's GitHub page.
 
 ## Download packages
 Packaged binaries are available through Github [Releases](https://github.com/christiansacks/moebius/releases) or from the direct links below:
@@ -58,7 +58,7 @@ The following parameters can be set:
   * mO'sOul appears courtesy of Desoto/Mo'Soul
 
 ## License
-Copyright 2022 Andy Herbert
+Copyright 2022 Andy Herbert and 2026 Christian Sacks
 
 Licensed under the [Apache License, version 2.0](https://github.com/christiansacks/moebius/blob/master/LICENSE.txt)
 
