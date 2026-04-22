@@ -135,11 +135,11 @@ function draw_blink_ellipse(sx, sy, dx, dy, unblink) {
     }
 }
 
-function draw_colorize_block_ellipse(sx, sy, dx, dy, fg, bg) {
+function draw_colorize_block_ellipse(sx, sy, dx, dy, fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx) {
     const coords = ellipse_coords(sx, sy, dx, dy);
     if (!coords) return;
     for (let i = 0; i < coords.length; i += 2) {
-        brushes.single_colorize_line(coords[i].x - 1, coords[i].y, coords[i + 1].x, coords[i + 1].y, fg, bg);
+        brushes.single_colorize_line(coords[i].x - 1, coords[i].y, coords[i + 1].x, coords[i + 1].y, fg, bg, false, fg_rgb, bg_rgb, fg_idx, bg_idx);
     }
 }
 
@@ -201,7 +201,7 @@ mouse.on("up", (x, y, half_y, button) => {
                 draw_blink_ellipse(mouse.start.x, mouse.start.y, x, y, button != mouse.buttons.LEFT);
                 break;
             case toolbar.modes.COLORIZE:
-                draw_colorize_block_ellipse(mouse.start.x, mouse.start.y, x, y, toolbar.colorize_fg ? fg : undefined, toolbar.colorize_bg ? bg : undefined);
+                draw_colorize_block_ellipse(mouse.start.x, mouse.start.y, x, y, toolbar.colorize_fg ? fg : undefined, toolbar.colorize_bg ? bg : undefined, toolbar.colorize_fg ? fg_rgb : undefined, toolbar.colorize_bg ? bg_rgb : undefined, toolbar.colorize_fg ? fg_idx : undefined, toolbar.colorize_bg ? bg_idx : undefined);
                 break;
         }
     }

@@ -162,12 +162,16 @@ mouse.on("up", (x, y, half_y, button) => {
             case toolbar.modes.COLORIZE:
                 const colorize_fg = toolbar.colorize_fg ? fg : undefined;
                 const colorize_bg = toolbar.colorize_bg ? bg : undefined;
-                brushes.single_colorize_line(sx, sy, dx, sy, colorize_fg, colorize_bg);
+                const colorize_fg_rgb = toolbar.colorize_fg ? fg_rgb : undefined;
+                const colorize_bg_rgb = toolbar.colorize_bg ? bg_rgb : undefined;
+                const colorize_fg_idx = toolbar.colorize_fg ? fg_idx : undefined;
+                const colorize_bg_idx = toolbar.colorize_bg ? bg_idx : undefined;
+                brushes.single_colorize_line(sx, sy, dx, sy, colorize_fg, colorize_bg, false, colorize_fg_rgb, colorize_bg_rgb, colorize_fg_idx, colorize_bg_idx);
                 if (dy > sy) {
-                    brushes.single_colorize_line(sx, dy, dx, dy, colorize_fg, colorize_bg);
+                    brushes.single_colorize_line(sx, dy, dx, dy, colorize_fg, colorize_bg, false, colorize_fg_rgb, colorize_bg_rgb, colorize_fg_idx, colorize_bg_idx);
                     if (dy > sy + 1) {
-                        brushes.single_colorize_line(sx, sy + 1, sx, dy - 1, colorize_fg, colorize_bg);
-                        brushes.single_colorize_line(dx, sy + 1, dx, dy - 1, colorize_fg, colorize_bg);
+                        brushes.single_colorize_line(sx, sy + 1, sx, dy - 1, colorize_fg, colorize_bg, false, colorize_fg_rgb, colorize_bg_rgb, colorize_fg_idx, colorize_bg_idx);
+                        brushes.single_colorize_line(dx, sy + 1, dx, dy - 1, colorize_fg, colorize_bg, false, colorize_fg_rgb, colorize_bg_rgb, colorize_fg_idx, colorize_bg_idx);
                     }
                 }
                 break;

@@ -91,7 +91,7 @@ mouse.on("up", (x, y, half_y, button) => {
                 brushes.single_blink_line(mouse.start.x, mouse.start.y, x, y, button != mouse.buttons.LEFT);
                 break;
             case toolbar.modes.COLORIZE:
-                brushes.single_colorize_line(mouse.start.x, mouse.start.y, x, y, toolbar.colorize_fg ? fg : undefined, toolbar.colorize_bg ? bg : undefined);
+                brushes.single_colorize_line(mouse.start.x, mouse.start.y, x, y, toolbar.colorize_fg ? fg : undefined, toolbar.colorize_bg ? bg : undefined, false, toolbar.colorize_fg ? fg_rgb : undefined, toolbar.colorize_bg ? bg_rgb : undefined, toolbar.colorize_fg ? fg_idx : undefined, toolbar.colorize_bg ? bg_idx : undefined);
                 break;
         }
     }
