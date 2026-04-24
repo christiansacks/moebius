@@ -656,6 +656,15 @@ function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
         case 27: code = 17; break;
         default:
         }
+        if (utf8 && i > 0 && i % doc.columns == 0) {
+            if (cur_utf8_bg_idx !== -1 || cur_utf8_bg_rgb !== null || current_bg !== 0) {
+                output.push(27, 91, 52, 57, 109); // ESC[49m
+                current_bg = 0;
+                cur_utf8_bg_idx = -1;
+                cur_utf8_bg_rgb = null;
+            }
+            output.push(10);
+        }
         if (utf8) {
             // fg
             if (fg_idx !== undefined) {
@@ -762,18 +771,15 @@ function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
                 }
             }
         }
-        if (utf8 && (i % doc.columns == 0)) {
-            output.push(10);
-        }
-        if (code == 32 && bg == 0) {
+        if (code == 32 && bg == 0 && bg_idx === undefined && !bg_rgb) {
             for (let j = i + 1; j < doc.data.length; j++) {
                 if (j % doc.columns == 0) {
                     if (!utf8) output.push(13, 10);
                     i = j - 1;
                     break;
                 }
-                let {code: look_ahead_code, bg: look_ahead_bg} = doc.data[j];
-                if (look_ahead_code != 32 || look_ahead_bg != 0) {
+                let {code: look_ahead_code, bg: look_ahead_bg, bg_idx: look_ahead_bg_idx, bg_rgb: look_ahead_bg_rgb} = doc.data[j];
+                if (look_ahead_code != 32 || look_ahead_bg != 0 || look_ahead_bg_idx !== undefined || look_ahead_bg_rgb) {
                     while (i < j) {
                         output.push(32);
                         i += 1;
