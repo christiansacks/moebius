@@ -87,6 +87,7 @@ class MouseListener extends events.EventEmitter {
         } else if (this.started) {
             if (!this.same_as_last(x, y, half_y)) this.emit("to", x, y, half_y, this.button);
         } else {
+            this.store(x, y, half_y);
             this.emit("move", x, y, half_y, is_legal);
         }
     }
