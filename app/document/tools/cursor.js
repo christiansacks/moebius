@@ -5,6 +5,7 @@ const libtextmode = require("../../libtextmode/libtextmode");
 const palette = require("../palette");
 const keyboard = require("../input/keyboard");
 const {statusbar, toolbar} = require("../ui/ui");
+const mouse = require("../input/mouse");
 const clipboard = require("./clipboard");
 
 class Cursor {
@@ -283,9 +284,28 @@ class Cursor {
     }
 
     attribute_under_cursor() {
-        const block = doc.at(this.x, this.y);
-        palette.fg = block.fg;
-        palette.bg = block.bg;
+        const x = this.hidden ? mouse.x : this.x;
+        const y = this.hidden ? mouse.y : this.y;
+        const block = doc.at(x, y);
+        if (!block) return;
+        if (block.fg_rgb || block.fg_idx !== undefined) {
+            if (block.fg_idx !== undefined) {
+                palette.set_extended_fg(block.fg_idx);
+            } else {
+                palette.set_truecolor_fg(block.fg_rgb.r, block.fg_rgb.g, block.fg_rgb.b);
+            }
+        } else {
+            palette.fg = block.fg;
+        }
+        if (block.bg_rgb || block.bg_idx !== undefined) {
+            if (block.bg_idx !== undefined) {
+                palette.set_extended_bg(block.bg_idx);
+            } else {
+                palette.set_truecolor_bg(block.bg_rgb.r, block.bg_rgb.g, block.bg_rgb.b);
+            }
+        } else {
+            palette.bg = block.bg;
+        }
     }
 
     rotate() {

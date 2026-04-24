@@ -527,7 +527,6 @@ electron.ipcMain.on("disable_operation_menu_items", (event, {id}) => disable_ope
 electron.ipcMain.on("disable_editing_shortcuts", (event, {id}) => {
     disable_selection_menu_items(id);
     disable_operation_menu_items(id);
-    disable(id, "use_attribute_under_cursor");
     disable(id, "left_justify_line");
     disable(id, "right_justify_line");
     disable(id, "center_line");

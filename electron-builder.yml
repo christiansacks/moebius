@@ -1,9 +1,9 @@
 directories:
   output: dist
   buildResources: build
-appId: org.andyherbert.moebius
+appId: com.christiansacks.moebius
 productName: Moebius
-copyright: Copyright © 2022 Andy Herbert
+copyright: Copyright © 2026 Christian Sacks
 extraResources:
   - from: build/ans
     to: ans
