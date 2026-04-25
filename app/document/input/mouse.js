@@ -1,7 +1,7 @@
 const events = require("events");
 const doc = require("../doc");
 const buttons = {NONE: 0, LEFT: 1, RIGHT: 2};
-const {toolbar, zoom_in, zoom_out, actual_size} = require("../ui/ui");
+const {toolbar, zoom_in, zoom_out, actual_size, get_canvas_zoom} = require("../ui/ui");
 const palette = require("../palette");
 
 class MouseListener extends events.EventEmitter {
@@ -14,9 +14,10 @@ class MouseListener extends events.EventEmitter {
     get_xy(event) {
         const canvas_container = document.getElementById("canvas_container");
         const canvas_container_rect = canvas_container.getBoundingClientRect();
-        const x = Math.floor((event.clientX - canvas_container_rect.left) / this.font.width);
-        const y = Math.floor((event.clientY - canvas_container_rect.top) / this.font.height);
-        const half_y = Math.floor((event.clientY - canvas_container_rect.top) / (this.font.height / 2));
+        const zoom = get_canvas_zoom();
+        const x = Math.floor((event.clientX - canvas_container_rect.left) / (this.font.width * zoom));
+        const y = Math.floor((event.clientY - canvas_container_rect.top) / (this.font.height * zoom));
+        const half_y = Math.floor((event.clientY - canvas_container_rect.top) / ((this.font.height / 2) * zoom));
         return {x, y, half_y};
     }
 

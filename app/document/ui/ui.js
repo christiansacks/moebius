@@ -1,5 +1,4 @@
 const electron = require("electron");
-const remote = require("@electron/remote");
 const {on, send, send_sync, open_box} = require("../../senders");
 const doc = require("../doc");
 const palette = require("../palette");
@@ -7,6 +6,11 @@ const keyboard = require("../input/keyboard");
 const events = require("events");
 let interval, guide_columns, guide_rows, tools_instance;
 let ref_x = 0, ref_y = 0;
+let canvas_zoom = 1.0;
+
+function get_canvas_zoom() {
+    return canvas_zoom;
+}
 
 function $(name) {
     return document.getElementById(name);
@@ -239,27 +243,25 @@ function hide_scrollbars(value) {
     set_var("scrollbar-height", value ? "0px" : "8px");
 }
 
-function current_zoom_factor() {
-    return parseFloat(remote.getCurrentWebContents().zoomFactor.toFixed(1));
-}
-
 function set_zoom(factor) {
+    canvas_zoom = parseFloat(Math.min(Math.max(factor, 0.5), 5.0).toFixed(1));
+    const canvas_container = $("canvas_container");
+    if (canvas_container) canvas_container.style.zoom = canvas_zoom;
     const zoom_element = $("zoom");
-    remote.getCurrentWebContents().zoomFactor = factor;
-    zoom_element.textContent = `${Math.ceil(factor * 10) * 10}%`;
+    zoom_element.textContent = `${Math.ceil(canvas_zoom * 10) * 10}%`;
     zoom_element.classList.remove("fade");
     document.body.removeChild(zoom_element);
     document.body.appendChild(zoom_element);
     zoom_element.classList.add("fade");
-    send("update_menu_checkboxes", {actual_size: (remote.getCurrentWebContents().zoomFactor == 1)});
+    send("update_menu_checkboxes", {actual_size: (canvas_zoom == 1.0)});
 }
 
 function zoom_in() {
-    set_zoom(Math.min(current_zoom_factor() + 0.1, 3.0));
+    set_zoom(parseFloat((canvas_zoom + 0.1).toFixed(1)));
 }
 
 function zoom_out() {
-    set_zoom(Math.max(current_zoom_factor() - 0.1, 0.5));
+    set_zoom(parseFloat((canvas_zoom - 0.1).toFixed(1)));
 }
 
 function actual_size() {
@@ -725,4 +727,4 @@ class Toolbar extends events.EventEmitter {
     }
 }
 
-module.exports = {statusbar: new StatusBar(), tools: new Tools(), toolbar: new Toolbar(), zoom_in, zoom_out, actual_size};
+module.exports = {statusbar: new StatusBar(), tools: new Tools(), toolbar: new Toolbar(), zoom_in, zoom_out, actual_size, get_canvas_zoom};
