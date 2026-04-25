@@ -246,7 +246,10 @@ function hide_scrollbars(value) {
 function set_zoom(factor) {
     canvas_zoom = parseFloat(Math.min(Math.max(factor, 0.5), 5.0).toFixed(1));
     const canvas_container = $("canvas_container");
-    if (canvas_container) canvas_container.style.zoom = canvas_zoom;
+    if (canvas_container) {
+        canvas_container.style.zoom = canvas_zoom;
+        document.dispatchEvent(new CustomEvent("canvas_zoom_changed"));
+    }
     const zoom_element = $("zoom");
     zoom_element.textContent = `${Math.ceil(canvas_zoom * 10) * 10}%`;
     zoom_element.classList.remove("fade");
