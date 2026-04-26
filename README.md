@@ -1,8 +1,8 @@
 
 ![Moebius Screenshot](docs/screenshot.png)
-# Moebius
+# Moebius²
 
-Moebius is an ANSI Editor, with true colour support, for MacOS, Linux and Windows. The major feature that differentiates it from [PabloDraw](https://github.com/blocktronics/pablodraw) is the 'half-block' brush which allows editing in a style closer to Photoshop than a text editor, although you can still use the function and cursor keys to draw with, and you should find that most of the text editing features from PabloDraw are carried over to this editor. The editor is still a work in progress, but anyone who wants to try using it is also encouraged to [log feature requests and bugs](https://github.com/christiansacks/moebius/issues) on the project's GitHub page.
+Moebius² is the modern realisation of an ANSI Editor, with true colour support; for MacOS, Linux and Windows. The major feature that differentiates it from [PabloDraw](https://github.com/blocktronics/pablodraw) is the 'half-block' brush which allows editing in a style closer to Photoshop than a text editor, although you can still use the function and cursor keys to draw with, and you should find that most of the text editing features from PabloDraw are carried over to this editor. The editor is still a work in progress, but anyone who wants to try using it is also encouraged to [log feature requests and bugs](https://github.com/christiansacks/moebius/issues) on the project's GitHub page.
 
 ## Download packages
 Packaged binaries are available through Github [Releases](https://github.com/christiansacks/moebius/releases) or from the direct links below:
@@ -19,7 +19,7 @@ npm install
 npm start
 ```
 
-Moebius packages can be built easily with [electron-builder](https://github.com/electron-userland/electron-builder). Note that a build for MacOS must be made on MacOS.
+Moebius² packages can be built easily with [electron-builder](https://github.com/electron-userland/electron-builder). Note that a build for MacOS must be made on MacOS.
 
 ```
 npm run-script build-mac
@@ -27,8 +27,8 @@ npm run-script build-win
 npm run-script build-linux
 ```
 
-## Moebius Server
-Moebius features collaboration by multiple users on the same canvas through a server instance. Users connect to a server which allows them to draw and chat. The server will also create hourly backups.
+## Moebius² Server
+Moebius² features collaboration by multiple users on the same canvas through a server instance. Users connect to a server which allows them to draw and chat. The server will also create hourly backups.
 
 To start a server:
 ```
@@ -37,7 +37,7 @@ npm install
 node ./server.js
 ```
 
-This will start a server with default settings. In this case a password will not be set and any value entered in the Moebius client will be accepted by the server. The server runs by default on port 8000, Moebius clients can modify the port by entering the server as hostname:port
+This will start a server with default settings. In this case a password will not be set and any value entered in the Moebius² client will be accepted by the server. The server runs by default on port 8000, Moebius² clients can modify the port by entering the server as hostname:port
 
 The following parameters can be set:
 
