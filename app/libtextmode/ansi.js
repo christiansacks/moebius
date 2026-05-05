@@ -550,6 +550,7 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
     let cur_fg_idx = -1, cur_bg_idx = -1;
     let cur_fg_rgb = null, cur_bg_rgb = null;
     let cur_fg_sgr = -1, cur_bg_sgr = -1;
+    let cur_bold = false;
     const rgb_eq = (a, b) => a && b && a.r === b.r && a.g === b.g && a.b === b.b;
 
     for (let row = 0; row < doc.rows; row++) {
@@ -570,6 +571,19 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
                 case 27: code = 17; break;
             }
 
+            // Bold state: only legacy 16-colour bright cells (fg 8-15) use ESC[1m].
+            // 256-colour/truecolor cells don't interact with bold.
+            const needs_bold = !fg_rgb && fg_idx === undefined && bin_to_ansi_colour(fg) >= 8;
+            if (needs_bold && !cur_bold) {
+                output.push(27, 91, 49, 109); // ESC[1m
+                cur_bold = true;
+            } else if (!needs_bold && cur_bold) {
+                output.push(27, 91, 48, 109); // ESC[0m — ESC[22m not reliable on BBS renderers
+                cur_bold = false;
+                cur_fg_sgr = -1; cur_fg_idx = -1; cur_fg_rgb = null;
+                cur_bg_sgr = 40; cur_bg_idx = -1; cur_bg_rgb = null;
+            }
+
             // fg color
             if (fg_idx !== undefined) {
                 if (fg_idx !== cur_fg_idx) {
@@ -588,9 +602,8 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
                 }
             } else {
                 const ai = bin_to_ansi_colour(fg);
-                const sgr = ai < 8 ? 30 + ai : 90 + (ai - 8);
+                const sgr = 30 + (ai >= 8 ? ai - 8 : ai); // always 3X; bold handled above
                 if (sgr !== cur_fg_sgr) {
-                    if (cur_fg_sgr >= 90 && sgr < 90) output.push(27, 91, 50, 50, 109); // ESC[22m — reset intensity before dropping from bright to normal
                     output.push(27, 91); push_num(output, sgr); output.push(109);
                     cur_fg_sgr = sgr; cur_fg_idx = -1; cur_fg_rgb = null;
                 }
