@@ -590,6 +590,7 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
                 const ai = bin_to_ansi_colour(fg);
                 const sgr = ai < 8 ? 30 + ai : 90 + (ai - 8);
                 if (sgr !== cur_fg_sgr) {
+                    if (cur_fg_sgr >= 90 && sgr < 90) output.push(27, 91, 50, 50, 109); // ESC[22m — reset intensity before dropping from bright to normal
                     output.push(27, 91); push_num(output, sgr); output.push(109);
                     cur_fg_sgr = sgr; cur_fg_idx = -1; cur_fg_rgb = null;
                 }
