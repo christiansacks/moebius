@@ -1,6 +1,24 @@
 [0m
                  [1mChangelog[0m
 
+           Ver. 1.2.7 2026-05-05
+
+ [1mFix: [0mbright-to-normal colour
+   bleed in extended ANSI export.
+
+           Ver. 1.2.6 2026-04-26
+
+ [1mFix: [0mBump to v1.2.6
+   Fix zoom out preview
+
+           Ver. 1.2.5 2026-04-26
+
+ [1mFix: [0mExtend 256-colour support to
+   colourise mode and Alt+U
+   utf8ans colour bleed and leading newline
+   Make zoom only zoom canvas and not the
+   whole UI
+
            Ver. 1.2.4 2026-04-22
 
  [1mFix: [0mShading, Replace and blink brushes
