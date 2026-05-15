@@ -1,6 +1,11 @@
 [0m
                  [1mChangelog[0m
 
+           Ver. 1.2.9 2026-05-15
+
+ [1mFeature: [0mAdd image preview to the
+   file load dialog.
+
            Ver. 1.2.8 2026-05-15
 
  [1mFix: [0mUndetected ansi width makes
