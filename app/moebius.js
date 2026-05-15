@@ -14,7 +14,9 @@ let prevent_splash_screen_at_startup = false;
 let splash_screen;
 const discord = require("./discord");
 const fs = require("fs");
+const os = require("os");
 const argv = require("minimist")(process.argv);
+let last_open_dir = null;
 
 function cleanup(id) {
     menu.cleanup(id);
@@ -109,11 +111,29 @@ function open_in_new_window(win) {
     return !win || docs[win.id].network || docs[win.id].file || docs[win.id].edited;
 }
 
-function open(win) {
-    if (darwin && win) electron.Menu.setApplicationMenu(menu.modal_menu);
-    const files = electron.dialog.showOpenDialogSync(open_in_new_window(win) ? undefined : win, {filters: [{name: "TextArt", extensions: ["ans", "xb", "bin", "diz", "asc", "txt", "nfo"]}, {name: "All Files", extensions: ["*"]}], properties: ["openFile", "multiSelections"]});
-    if (darwin && win) electron.Menu.setApplicationMenu(docs[win.id].menu);
-    if (!files) return;
+async function open(win) {
+    let start_dir = last_open_dir;
+    if (!start_dir && win && docs[win.id] && docs[win.id].file) {
+        start_dir = path.dirname(docs[win.id].file);
+    }
+    const picker = await window.new_modal("app/html/file_picker.html", {
+        width: 900, height: 580,
+        parent: win || undefined,
+    });
+    if (win) docs[win.id].modal = picker;
+    if (darwin && win) add_darwin_window_menu_handler(win.id);
+    let recent_files = [];
+    try { recent_files = electron.app.getRecentDocuments ? electron.app.getRecentDocuments() : []; } catch (e) {}
+    picker.send("file_picker_init", {
+        win_id: win ? win.id : null,
+        recent_files,
+        start_dir: start_dir || os.homedir(),
+    });
+}
+
+electron.ipcMain.on("file_picker_open", (event, {files, win_id, last_dir}) => {
+    if (last_dir) last_open_dir = last_dir;
+    const win = (win_id && docs[win_id] && !docs[win_id].destroyed) ? docs[win_id].win : null;
     for (const file of files) {
         if (win && !check_if_file_is_already_open(file) && !open_in_new_window(win)) {
             win.send("open_file", file);
@@ -122,7 +142,7 @@ function open(win) {
             open_file(file);
         }
     }
-}
+});
 
 menu.on("open", open);
 electron.ipcMain.on("open", (event) => open());

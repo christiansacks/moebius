@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Open Files</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/file_picker.css">
+    <script src="../windows/file_picker.js"></script>
+</head>
+<body class="dark">
+    <div id="picker_layout">
+        <div id="picker_sidebar">
+            <div class="sidebar_heading">Bookmarks</div>
+            <div id="bookmarks"></div>
+            <div class="sidebar_heading">Recent</div>
+            <div id="recents"></div>
+        </div>
+        <div id="picker_center">
+            <div id="picker_breadcrumb"></div>
+            <div id="picker_files" tabindex="0"></div>
+        </div>
+        <div id="picker_preview_panel">
+            <div id="preview_canvas_wrap">
+                <canvas id="preview_canvas"></canvas>
+            </div>
+            <div id="preview_info"></div>
+        </div>
+    </div>
+    <div id="picker_footer">
+        <input type="text" id="filename_input" placeholder="Filename" autocomplete="off" spellcheck="false">
+        <button id="cancel_btn" type="button">Cancel</button>
+        <button id="open_btn" type="button" disabled>Open</button>
+    </div>
+</body>
+</html>
