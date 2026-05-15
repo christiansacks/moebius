@@ -1,6 +1,11 @@
 [0m
                  [1mChangelog[0m
 
+           Ver. 1.2.8 2026-05-15
+
+ [1mFix: [0mUndetected ansi width makes
+   file load with odd outcomes.
+
            Ver. 1.2.7 2026-05-05
 
  [1mFix: [0mbright-to-normal colour
