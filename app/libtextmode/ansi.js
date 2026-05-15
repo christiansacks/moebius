@@ -522,12 +522,14 @@ function detect_columns(bytes) {
     // File has explicit newlines and content wider than 80 — use max line length
     if (has_newlines && max_line > 80) return max_line;
 
-    // Pure auto-wrap — factor total visible chars into landscape dimensions
+    // Pure auto-wrap — try standard ANSI widths first, then fall back to scoring
     if (!has_newlines && total > 0) {
+        for (const w of [80, 132, 160, 40]) {
+            if (total % w === 0) return w;
+        }
         let best = 0, best_score = -1;
         for (let c = 80; c <= Math.min(2000, total); c++) {
             if (total % c !== 0) continue;
-            if (c < total / c) continue; // require cols >= rows (landscape)
             const score = c % 100 === 0 ? 100 : c % 80 === 0 ? 80 : c % 40 === 0 ? 40 :
                           c % 20 === 0 ? 20 : c % 10 === 0 ? 10 : c % 5 === 0 ? 5 : 1;
             if (score > best_score || (score === best_score && c < best)) {
