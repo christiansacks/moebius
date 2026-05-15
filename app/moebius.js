@@ -16,7 +16,7 @@ const discord = require("./discord");
 const fs = require("fs");
 const os = require("os");
 const argv = require("minimist")(process.argv);
-let last_open_dir = null;
+let last_open_dir = prefs.get("last_open_dir") || null;
 
 function cleanup(id) {
     menu.cleanup(id);
@@ -81,6 +81,9 @@ function set_file(id, file) {
     docs[id].win.setDocumentEdited(false);
     docs[id].edited = false;
     electron.app.addRecentDocument(file);
+    const recent = (prefs.get("recent_files") || []).filter(f => f !== file);
+    recent.unshift(file);
+    prefs.set("recent_files", recent.slice(0, 20));
 }
 
 electron.ipcMain.on("set_file", (event, {id, file}) => set_file(id, file));
@@ -122,8 +125,7 @@ async function open(win) {
     });
     if (win) docs[win.id].modal = picker;
     if (darwin && win) add_darwin_window_menu_handler(win.id);
-    let recent_files = [];
-    try { recent_files = electron.app.getRecentDocuments ? electron.app.getRecentDocuments() : []; } catch (e) {}
+    const recent_files = prefs.get("recent_files") || [];
     picker.send("file_picker_init", {
         win_id: win ? win.id : null,
         recent_files,
@@ -132,7 +134,10 @@ async function open(win) {
 }
 
 electron.ipcMain.on("file_picker_open", (event, {files, win_id, last_dir}) => {
-    if (last_dir) last_open_dir = last_dir;
+    if (last_dir) {
+        last_open_dir = last_dir;
+        prefs.set("last_open_dir", last_dir);
+    }
     const win = (win_id && docs[win_id] && !docs[win_id].destroyed) ? docs[win_id].win : null;
     for (const file of files) {
         if (win && !check_if_file_is_already_open(file) && !open_in_new_window(win)) {
