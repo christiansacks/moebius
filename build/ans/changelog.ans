@@ -1,6 +1,11 @@
 [0m
                  [1mChangelog[0m
 
+           Ver. 1.3.2 2026-05-28
+
+ [1mFeature: [0mAllow opening of online art
+   packs from 16colo.rs
+
            Ver. 1.3.1 2026-05-28
 
  [1mFix: [0mAllow file open dialog to navigate
