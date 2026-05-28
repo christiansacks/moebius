@@ -182,7 +182,17 @@ function scroll_selected_into_view() {
 function confirm_selection() {
     if (selected_index >= 0) {
         activate_entry(selected_index);
+        return;
     }
+    const typed = $("filename_input").value.trim();
+    if (!typed) return;
+    let full = path.isAbsolute(typed) ? typed : path.join(current_dir, typed);
+    if (process.platform === "win32" && /^[A-Za-z]:$/.test(typed)) full = typed.toUpperCase() + path.sep;
+    try {
+        const stat = fs.statSync(full);
+        if (stat.isDirectory()) navigate_to(full);
+        else if (SUPPORTED_EXT.has(path.extname(full).toLowerCase())) open_files([full]);
+    } catch (e) { /* path doesn't exist */ }
 }
 
 function open_files(files) {
@@ -237,6 +247,30 @@ async function show_preview(file_path) {
         $("preview_canvas").width = 1;
         $("preview_canvas").height = 1;
         $("preview_info").innerHTML = `<div class="preview_dim">Could not render preview</div>`;
+    }
+}
+
+function build_drives_section() {
+    const sidebar = $("picker_sidebar");
+    const heading = document.createElement("div");
+    heading.className = "sidebar_heading";
+    heading.textContent = "Drives";
+    const drives_el = document.createElement("div");
+    drives_el.id = "drives";
+    sidebar.prepend(drives_el);
+    sidebar.prepend(heading);
+    for (let c = 65; c <= 90; c++) {
+        const letter = String.fromCharCode(c);
+        const drive = letter + ":\\";
+        try {
+            fs.accessSync(drive, fs.constants.R_OK);
+            const el = document.createElement("div");
+            el.className = "sidebar_item";
+            el.dataset.nav = drive;
+            el.textContent = letter + ":";
+            el.addEventListener("click", () => navigate_to(drive));
+            drives_el.appendChild(el);
+        } catch (e) {}
     }
 }
 
@@ -324,6 +358,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 electron.ipcRenderer.on("file_picker_init", (event, {win_id: wid, recent_files, start_dir}) => {
     win_id = wid;
+    if (process.platform === "win32") build_drives_section();
     build_sidebar(recent_files);
     navigate_to(start_dir || os.homedir());
 });
