@@ -74,16 +74,20 @@ async function new_document({columns, rows, title, author, group, date, palette,
     win.send("new_document", {columns, rows, title, author, group, date, palette, font_name, use_9px_font, ice_colors, comments, data});
 }
 
+const ZIP_EXTRACT_DIR = path.join(os.tmpdir(), "moebius_extract");
+
 function set_file(id, file) {
     docs[id].file = file;
     docs[id].win.setRepresentedFilename(file);
     docs[id].win.setTitle(path.basename(file));
     docs[id].win.setDocumentEdited(false);
     docs[id].edited = false;
-    electron.app.addRecentDocument(file);
-    const recent = (prefs.get("recent_files") || []).filter(f => f !== file);
-    recent.unshift(file);
-    prefs.set("recent_files", recent.slice(0, 20));
+    if (!file.startsWith(ZIP_EXTRACT_DIR + path.sep)) {
+        electron.app.addRecentDocument(file);
+        const recent = (prefs.get("recent_files") || []).filter(f => f !== file);
+        recent.unshift(file);
+        prefs.set("recent_files", recent.slice(0, 20));
+    }
 }
 
 electron.ipcMain.on("set_file", (event, {id, file}) => set_file(id, file));
@@ -133,14 +137,17 @@ async function open(win) {
     });
 }
 
-electron.ipcMain.on("file_picker_open", (event, {files, win_id, last_dir}) => {
-    if (last_dir) {
+electron.ipcMain.on("file_picker_open", (event, {files, win_id, last_dir, extracted_from_zip}) => {
+    if (last_dir && !extracted_from_zip) {
         last_open_dir = last_dir;
         prefs.set("last_open_dir", last_dir);
     }
     const win = (win_id && docs[win_id] && !docs[win_id].destroyed) ? docs[win_id].win : null;
     for (const file of files) {
-        if (win && !check_if_file_is_already_open(file) && !open_in_new_window(win)) {
+        if (extracted_from_zip && win) {
+            docs[win.id].file = file;
+            win.send("open_file_extracted", file);
+        } else if (win && !check_if_file_is_already_open(file) && !open_in_new_window(win)) {
             win.send("open_file", file);
             docs[win.id].file = file;
         } else {

@@ -1,4 +1,6 @@
 const electron = require("electron");
+const os = require("os");
+const path = require("path");
 const {on, send, send_sync, msg_box, save_box} = require("./senders");
 const doc = require("./document/doc");
 const {tools} = require("./document/ui/ui");
@@ -62,8 +64,14 @@ async function process_save(method = 'save', destroy_when_done = false, ignore_c
     }
 }
 
+const ZIP_EXTRACT_DIR = path.join(os.tmpdir(), "moebius_extract");
+
+function is_zip_extract(file) {
+    return file && file.startsWith(ZIP_EXTRACT_DIR + path.sep);
+}
+
 function save(destroy_when_done = false, save_without_sauce = false) {
-    if (doc.file) {
+    if (doc.file && !is_zip_extract(doc.file)) {
         doc.edited = false;
         doc.save(save_without_sauce);
         if (destroy_when_done) send("destroy");
@@ -150,6 +158,7 @@ on("save", (event, opts) => {
     }
 });
 on("save_as", (event, opts) => process_save('save_as'));
+on("open_file_extracted", (event, file) => doc.open(file));
 on("save_without_sauce", (event, opts) => process_save('save_without_sauce'));
 on("share_online", (event, opts) => share_online());
 on("open_file", (event, file) => doc.open(file));
