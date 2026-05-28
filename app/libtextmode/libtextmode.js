@@ -3,6 +3,7 @@ const {create_canvas, join_canvases} = require("./canvas");
 const {Ansi, encode_as_ansi, ansi_to_bin_color} = require("./ansi");
 const {BinaryText, encode_as_bin} = require("./binary_text");
 const {XBin, encode_as_xbin} = require("./xbin");
+const {CtrlA, encode_as_ctrla} = require("./ctrla");
 const {ega, c64, convert_ega_to_style, has_ansi_palette, has_c64_palette} = require("./palette");
 const path = require("path");
 const {current_date, resize_canvas} = require("./textmode");
@@ -15,6 +16,7 @@ function read_bytes(bytes, file) {
     switch (path.extname(file).toLowerCase()) {
         case ".bin": result = new BinaryText(bytes); break;
         case ".xb": result = new XBin(bytes); break;
+        case ".msg": result = new CtrlA(bytes); break;
         case ".ans":
         default:
         result = new Ansi(bytes);
@@ -85,6 +87,9 @@ function write_file(doc, file, {utf8 = false, save_without_sauce = false} = {}) 
         break;
         case ".xb":
         bytes = encode_as_xbin(doc, save_without_sauce);
+        break;
+        case ".msg":
+        bytes = encode_as_ctrla(doc, save_without_sauce);
         break;
         case ".ans":
         default:

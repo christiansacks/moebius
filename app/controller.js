@@ -73,7 +73,7 @@ function save(destroy_when_done = false, save_without_sauce = false) {
 }
 
 function save_as(destroy_when_done = false) {
-    const file = save_box(doc.file, "ans", {filters: [{name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]}, {name: "XBin", extensions: ["xb"]}, {name: "Binary Text", extensions: ["bin"]}]});
+    const file = save_box(doc.file, "ans", {filters: [{name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]}, {name: "Synchronet MSG", extensions: ["msg"]}, {name: "XBin", extensions: ["xb"]}, {name: "Binary Text", extensions: ["bin"]}]});
     if (file) {
         doc.file = file;
         doc.edited = false;
@@ -82,7 +82,7 @@ function save_as(destroy_when_done = false) {
 }
 
 function save_without_sauce() {
-    const file = save_box(doc.file, "ans", {filters: [{name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]}, {name: "XBin", extensions: ["xb"]}, {name: "Binary Text", extensions: ["bin"]}]});
+    const file = save_box(doc.file, "ans", {filters: [{name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]}, {name: "Synchronet MSG", extensions: ["msg"]}, {name: "XBin", extensions: ["xb"]}, {name: "Binary Text", extensions: ["bin"]}]});
     if (file) {
         doc.file = file;
         doc.edited = false;

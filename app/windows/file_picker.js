@@ -4,7 +4,7 @@ const os = require("os");
 const electron = require("electron");
 const libtextmode = require("../libtextmode/libtextmode");
 
-const SUPPORTED_EXT = new Set([".ans", ".xb", ".bin", ".diz", ".asc", ".txt", ".nfo"]);
+const SUPPORTED_EXT = new Set([".ans", ".xb", ".bin", ".diz", ".asc", ".txt", ".nfo", ".msg"]);
 
 let current_dir = os.homedir();
 let win_id = null;
