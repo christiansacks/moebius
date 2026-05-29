@@ -451,6 +451,30 @@ body.dark #layer_opacity_num {
     border-color: var(--dark-border-color);
     color: white;
 }
+.layer_drag_ghost {
+    position: fixed;
+    z-index: 10000;
+    opacity: 0.75;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    background-color: var(--mid-color);
+    border: 1px solid var(--border-color);
+}
+.layer_dragging {
+    opacity: 0.3;
+}
+.layer_drop_indicator {
+    position: fixed;
+    height: 2px;
+    background: #4a9eff;
+    z-index: 10001;
+    pointer-events: none;
+    border-radius: 1px;
+}
+body.dark .layer_drag_ghost {
+    background-color: var(--dark-mid-color);
+    border-color: var(--dark-border-color);
+}
 #layers_resize_handle {
     height: 5px;
     flex-shrink: 0;

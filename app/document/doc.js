@@ -1295,6 +1295,22 @@ class TextModeDoc extends events.EventEmitter {
         this.emit("layers_changed");
     }
 
+    move_layer_to(from, to) {
+        if (!doc.layers || from === to || from < 0 || to < 0 || from >= doc.layers.length || to >= doc.layers.length) return;
+        doc.layers.splice(to, 0, doc.layers.splice(from, 1)[0]);
+        if (active_layer === from) {
+            active_layer = to;
+        } else if (from < to && active_layer > from && active_layer <= to) {
+            active_layer--;
+        } else if (from > to && active_layer >= to && active_layer < from) {
+            active_layer++;
+        }
+        this.undo_history.reset_undos();
+        this._recomposite_all();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
     rename_layer(idx, name) {
         if (!doc.layers || idx < 0 || idx >= doc.layers.length) return;
         doc.layers[idx].name = name;
