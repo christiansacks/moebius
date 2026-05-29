@@ -188,3 +188,10 @@ on("connect_to_server", (event, {server, pass}) => doc.connect_to_server(server,
 on("backup_folder", (event, folder) => backup_folder = folder);
 on("use_backup", (event, value) => use_backup(value));
 on("show_layers_panel", (event, visible) => layers_panel.show_layers_panel(visible));
+on("layer_add", () => doc.add_layer());
+on("layer_duplicate", () => doc.duplicate_layer());
+on("layer_delete", () => { if (doc.layers && doc.layers.length > 1) doc.delete_layer(doc.active_layer); });
+on("layer_move_up", () => doc.move_layer_up(doc.active_layer));
+on("layer_move_down", () => doc.move_layer_down(doc.active_layer));
+on("layer_merge_down", () => doc.merge_layer_down(doc.active_layer));
+on("layer_merge_all", () => { if (doc.layers && doc.layers.length > 1) doc.merge_all_layers(); });

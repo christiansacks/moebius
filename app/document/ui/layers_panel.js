@@ -1,4 +1,5 @@
 const doc = require("../doc");
+const {send} = require("../../senders");
 
 function $(id) { return document.getElementById(id); }
 
@@ -60,6 +61,7 @@ function update_controls() {
     set_btn_state("layer_move_down", doc.active_layer <= 0);
     set_btn_state("layer_merge_down", doc.active_layer <= 0);
     set_btn_state("layer_delete", doc.layers.length <= 1);
+    send("update_layer_menu", {active_layer: doc.active_layer, layer_count: doc.layers.length});
 }
 
 function update_panel() {

@@ -324,8 +324,25 @@ function debug_menu_template(win) {
     };
 }
 
+function layer_menu_template(win) {
+    return {
+        label: "&Layer",
+        submenu: [
+            {label: "Add Layer", id: "layer_add", accelerator: "CmdorCtrl+Shift+N", click(item) {win.send("layer_add");}},
+            {label: "Duplicate Layer", id: "layer_duplicate", click(item) {win.send("layer_duplicate");}},
+            {label: "Delete Layer", id: "layer_delete_menu", click(item) {win.send("layer_delete");}, enabled: false},
+            {type: "separator"},
+            {label: "Move Layer Up", id: "layer_move_up_menu", click(item) {win.send("layer_move_up");}, enabled: false},
+            {label: "Move Layer Down", id: "layer_move_down_menu", click(item) {win.send("layer_move_down");}, enabled: false},
+            {type: "separator"},
+            {label: "Merge Down", id: "layer_merge_down_menu", click(item) {win.send("layer_merge_down");}, enabled: false},
+            {label: "Flatten All Layers", id: "layer_merge_all_menu", click(item) {win.send("layer_merge_all");}, enabled: false},
+        ],
+    };
+}
+
 function create_menu_template(win, chat, debug) {
-    const menu_lists = [file_menu_template(win), edit_menu_template(win, chat), selection_menu_template(win, chat), colors_menu_template(win), view_menu_template(win), network_menu_template(win, chat)];
+    const menu_lists = [file_menu_template(win), edit_menu_template(win, chat), selection_menu_template(win, chat), colors_menu_template(win), view_menu_template(win), layer_menu_template(win), network_menu_template(win, chat)];
     if (debug) menu_lists.push(debug_menu_template(win));
     return menu_lists;
 }
@@ -609,6 +626,17 @@ electron.ipcMain.on("update_menu_checkboxes", (event, {id, insert_mode, overwrit
             font_names[id] = font_name;
         }
     }
+});
+
+electron.ipcMain.on("update_layer_menu", (event, {id, active_layer, layer_count}) => {
+    const multi = layer_count > 1;
+    const not_top = active_layer < layer_count - 1;
+    const not_bottom = active_layer > 0;
+    if (multi) enable(id, "layer_delete_menu"); else disable(id, "layer_delete_menu");
+    if (not_top) enable(id, "layer_move_up_menu"); else disable(id, "layer_move_up_menu");
+    if (not_bottom) enable(id, "layer_move_down_menu"); else disable(id, "layer_move_down_menu");
+    if (not_bottom) enable(id, "layer_merge_down_menu"); else disable(id, "layer_merge_down_menu");
+    if (multi) enable(id, "layer_merge_all_menu"); else disable(id, "layer_merge_all_menu");
 });
 
 electron.ipcMain.on("uncheck_transparent", (event, {id}) => uncheck(id, "transparent"));

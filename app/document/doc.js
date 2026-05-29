@@ -1203,6 +1203,31 @@ class TextModeDoc extends events.EventEmitter {
         this.emit("layers_changed");
     }
 
+    duplicate_layer() {
+        const src = doc.layers[active_layer];
+        const copy = {
+            name: `${src.name} copy`,
+            visible: src.visible,
+            locked: src.locked,
+            opacity: src.opacity,
+            blend_mode: src.blend_mode,
+            offset_x: src.offset_x,
+            offset_y: src.offset_y,
+            data: src.data.map(b => b ? Object.assign({}, b) : null),
+        };
+        if (doc.layers.length === 1) {
+            const detached = new Array(doc.columns * doc.rows);
+            for (let i = 0; i < detached.length; i++) detached[i] = Object.assign({}, doc.layers[0].data[i]);
+            doc.data = detached;
+        }
+        doc.layers.splice(active_layer + 1, 0, copy);
+        active_layer = active_layer + 1;
+        this.undo_history.reset_undos();
+        this._recomposite_all();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
     add_layer(name = null) {
         const layer_name = name || `Layer ${doc.layers.length + 1}`;
         const new_layer = libtextmode.make_layer(layer_name, doc.columns, doc.rows);
