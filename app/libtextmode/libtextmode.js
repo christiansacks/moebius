@@ -145,7 +145,7 @@ function render_blocks(blocks, font, c64_background) {
     for (let y = 0, py = 0, i = 0; y < blocks.rows; y++, py += font.height) {
         for (let x = 0, px = 0; x < blocks.columns; x++, px += font.width, i++) {
             const block = blocks.data[i];
-            if (!blocks.transparent || block.code != 32 || block.bg != 0) font.draw(ctx, block, px, py, c64_background);
+            if (block && (!blocks.transparent || block.code != 32 || block.bg != 0)) font.draw(ctx, block, px, py, c64_background);
         }
     }
     return canvas;
@@ -730,7 +730,8 @@ function get_blocks(doc, sx, sy, dx, dy, opts = {}) {
     const blocks = {columns, rows, data: new Array(columns * rows), ...opts};
     for (let y = sy, i = 0; y <= dy; y++) {
         for (let x = sx; x <= dx; x++, i++) {
-            blocks.data[i] = Object.assign(doc.data[y * doc.columns + x]);
+            const cell = doc.data[y * doc.columns + x];
+            blocks.data[i] = cell ? Object.assign({}, cell) : null;
         }
     }
     return blocks;

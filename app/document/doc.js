@@ -844,6 +844,10 @@ class TextModeDoc extends events.EventEmitter {
     }
 
     get_blocks(sx, sy, dx, dy, opts) {
+        if (doc.layers && doc.layers.length > 1) {
+            const layer_doc = Object.assign({}, doc, {data: doc.layers[active_layer].data});
+            return libtextmode.get_blocks(layer_doc, sx, sy, dx, dy, opts);
+        }
         return libtextmode.get_blocks(doc, sx, sy, dx, dy, opts);
     }
 
@@ -1101,6 +1105,7 @@ class TextModeDoc extends events.EventEmitter {
         for (let y = 0; y + dy < doc.rows && y < blocks.rows; y++) {
             for (let x = 0; x + dx < doc.columns && x < blocks.columns; x++) {
                 const block = blocks.data[y * blocks.columns + x];
+                if (block === null) continue;
                 if (!blocks.transparent || block.code != 32 || block.bg != 0) this.change_data(dx + x, dy + y, block.code, block.fg, block.bg, undefined, undefined, !dont_mirror, {fg_rgb: block.fg_rgb, bg_rgb: block.bg_rgb, fg_idx: block.fg_idx, bg_idx: block.bg_idx});
             }
         }
@@ -1116,7 +1121,25 @@ class TextModeDoc extends events.EventEmitter {
     }
 
     erase(sx, sy, dx, dy) {
-        this.fill_with_code(sx, sy, dx, dy, 32, 7, 0);
+        if (doc.layers && doc.layers.length > 1) {
+            this.undo_history.start_chunk();
+            const layer_data = doc.layers[active_layer].data;
+            for (let y = sy; y <= dy; y++) {
+                for (let x = sx; x <= dx; x++) {
+                    const i = doc.columns * y + x;
+                    const prev = layer_data[i];
+                    if (prev === null) continue;
+                    this.undo_history.push(x, y, Object.assign({}, prev));
+                    layer_data[i] = null;
+                    const composited = libtextmode.composite_cell_at(doc.layers, i, doc.extended_colors);
+                    doc.data[i] = composited;
+                    libtextmode.render_at(render, x, y, composited, doc.c64_background);
+                }
+            }
+            this.start_rendering();
+        } else {
+            this.fill_with_code(sx, sy, dx, dy, 32, 7, 0);
+        }
     }
 
     fill(sx, sy, dx, dy, col) {
