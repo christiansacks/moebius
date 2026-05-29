@@ -4,6 +4,7 @@ const events = require("events");
 const chat = require("./ui/chat");
 const path = require("path");;
 let doc, render;
+let active_layer = 0;
 const actions =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, PASTE_AS_SELECTION: 17, ROTATE: 18, FLIP_X: 19, FLIP_Y: 20, SET_BG: 21};
 const statuses = {ACTIVE: 0, IDLE: 1, AWAY: 2, WEB: 3};
 const modes = {EDITING: 0, SELECTION: 1, OPERATION: 2};
@@ -398,21 +399,41 @@ class UndoHistory extends events.EventEmitter {
         const redos = [];
         for (let undo_i = undos.length - 1; undo_i >= 0; undo_i--) {
             const undo = undos[undo_i];
-            const block = doc.data[doc.columns * undo.y + undo.x];
-            if (undo.cursor) {
-                redos.push({...Object.assign(block), x: undo.x, y: undo.y, cursor: Object.assign(undo.cursor)});
+            const i = doc.columns * undo.y + undo.x;
+            if (doc.layers.length > 1) {
+                const layer_data = doc.layers[active_layer].data;
+                const cur = layer_data[i];
+                const redo_block = cur !== null && cur !== undefined
+                    ? {...Object.assign(cur), x: undo.x, y: undo.y}
+                    : {x: undo.x, y: undo.y, code: 32, fg: 7, bg: 0, _was_transparent: true};
+                if (undo.cursor) redo_block.cursor = Object.assign(undo.cursor);
+                redos.push(redo_block);
+                if (undo._was_transparent) {
+                    layer_data[i] = null;
+                } else {
+                    layer_data[i] = {code: undo.code, fg: undo.fg, bg: undo.bg, fg_rgb: undo.fg_rgb, bg_rgb: undo.bg_rgb, fg_idx: undo.fg_idx, bg_idx: undo.bg_idx};
+                }
+                const composited = libtextmode.composite_cell_at(doc.layers, i, doc.extended_colors);
+                doc.data[i] = composited;
+                libtextmode.render_at(render, undo.x, undo.y, composited, doc.c64_background);
+                if (connection) connection.draw(undo.x, undo.y, composited);
             } else {
-                redos.push({...Object.assign(block), x: undo.x, y: undo.y});
+                const block = doc.data[i];
+                if (undo.cursor) {
+                    redos.push({...Object.assign(block), x: undo.x, y: undo.y, cursor: Object.assign(undo.cursor)});
+                } else {
+                    redos.push({...Object.assign(block), x: undo.x, y: undo.y});
+                }
+                block.code = undo.code;
+                block.fg = undo.fg;
+                block.bg = undo.bg;
+                block.fg_rgb = undo.fg_rgb;
+                block.bg_rgb = undo.bg_rgb;
+                block.fg_idx = undo.fg_idx;
+                block.bg_idx = undo.bg_idx;
+                libtextmode.render_at(render, undo.x, undo.y, block, doc.c64_background);
+                if (connection) connection.draw(undo.x, undo.y, block);
             }
-            block.code = undo.code;
-            block.fg = undo.fg;
-            block.bg = undo.bg;
-            block.fg_rgb = undo.fg_rgb;
-            block.bg_rgb = undo.bg_rgb;
-            block.fg_idx = undo.fg_idx;
-            block.bg_idx = undo.bg_idx;
-            libtextmode.render_at(render, undo.x, undo.y, block, doc.c64_background);
-            if (connection) connection.draw(undo.x, undo.y, block);
             if (undo.cursor) this.emit("move_to", undo.cursor.prev_x, undo.cursor.prev_y);
         }
         this.redo_buffer.push({type: undo_types.INDIVIDUAL, data: redos});
@@ -422,21 +443,41 @@ class UndoHistory extends events.EventEmitter {
         const undos = [];
         for (let redo_i = redos.length - 1; redo_i >= 0; redo_i--) {
             const redo = redos[redo_i];
-            const block = doc.data[doc.columns * redo.y + redo.x];
-            if (redo.cursor) {
-                undos.push({...Object.assign(block), x: redo.x, y: redo.y, cursor: Object.assign(redo.cursor)});
+            const i = doc.columns * redo.y + redo.x;
+            if (doc.layers.length > 1) {
+                const layer_data = doc.layers[active_layer].data;
+                const cur = layer_data[i];
+                const undo_block = cur !== null && cur !== undefined
+                    ? {...Object.assign(cur), x: redo.x, y: redo.y}
+                    : {x: redo.x, y: redo.y, code: 32, fg: 7, bg: 0, _was_transparent: true};
+                if (redo.cursor) undo_block.cursor = Object.assign(redo.cursor);
+                undos.push(undo_block);
+                if (redo._was_transparent) {
+                    layer_data[i] = null;
+                } else {
+                    layer_data[i] = {code: redo.code, fg: redo.fg, bg: redo.bg, fg_rgb: redo.fg_rgb, bg_rgb: redo.bg_rgb, fg_idx: redo.fg_idx, bg_idx: redo.bg_idx};
+                }
+                const composited = libtextmode.composite_cell_at(doc.layers, i, doc.extended_colors);
+                doc.data[i] = composited;
+                libtextmode.render_at(render, redo.x, redo.y, composited, doc.c64_background);
+                if (connection) connection.draw(redo.x, redo.y, composited);
             } else {
-                undos.push({...Object.assign(block), x: redo.x, y: redo.y});
+                const block = doc.data[i];
+                if (redo.cursor) {
+                    undos.push({...Object.assign(block), x: redo.x, y: redo.y, cursor: Object.assign(redo.cursor)});
+                } else {
+                    undos.push({...Object.assign(block), x: redo.x, y: redo.y});
+                }
+                block.code = redo.code;
+                block.fg = redo.fg;
+                block.bg = redo.bg;
+                block.fg_rgb = redo.fg_rgb;
+                block.bg_rgb = redo.bg_rgb;
+                block.fg_idx = redo.fg_idx;
+                block.bg_idx = redo.bg_idx;
+                libtextmode.render_at(render, redo.x, redo.y, block, doc.c64_background);
+                if (connection) connection.draw(redo.x, redo.y, block);
             }
-            block.code = redo.code;
-            block.fg = redo.fg;
-            block.bg = redo.bg;
-            block.fg_rgb = redo.fg_rgb;
-            block.bg_rgb = redo.bg_rgb;
-            block.fg_idx = redo.fg_idx;
-            block.bg_idx = redo.bg_idx;
-            libtextmode.render_at(render, redo.x, redo.y, block, doc.c64_background);
-            if (connection) connection.draw(redo.x, redo.y, block);
             if (redo.cursor) this.emit("move_to", redo.cursor.post_x, redo.cursor.post_y);
         }
         this.undo_buffer.push({type: undo_types.INDIVIDUAL, data: undos});
@@ -447,6 +488,7 @@ class UndoHistory extends events.EventEmitter {
         doc.rows = blocks.rows;
         doc.data = new Array(doc.columns * doc.rows);
         for (let i = 0; i < doc.data.length; i++) doc.data[i] = Object.assign(blocks.data[i]);
+        if (doc.layers && doc.layers.length === 1) doc.layers[0].data = doc.data;
     }
 
     undo_resize(blocks) {
@@ -658,6 +700,7 @@ class TextModeDoc extends events.EventEmitter {
 
     async new_document({columns, rows, title, author, group, date, palette, font_name, use_9px_font, ice_colors, extended_colors, comments, data}) {
         doc = libtextmode.new_document({columns, rows, title, author, group, date, palette, font_name, use_9px_font, ice_colors, extended_colors, comments, data});
+        active_layer = 0;
         await this.start_rendering();
         this.emit("new_document");
         this.ready();
@@ -735,7 +778,10 @@ class TextModeDoc extends events.EventEmitter {
     get extended_colors() {return doc.extended_colors;}
     get xterm_base16() {return doc.xterm_base16;}
     get use_9px_font() {return doc.use_9px_font;}
-    get data() {return doc.data;}
+    get data() { return doc && doc.layers ? doc.layers[active_layer].data : doc?.data; }
+    get is_layered() { return doc && doc.layers && doc.layers.length > 1; }
+    get active_layer() { return active_layer; }
+    get layers() { return doc ? doc.layers : null; }
     get c64_background() {return doc.c64_background;}
     set c64_background(value) {doc.c64_background = value;}
 
@@ -802,14 +848,32 @@ class TextModeDoc extends events.EventEmitter {
     change_data(x, y, code, fg, bg, prev_cursor, cursor, mirrored = true, {fg_rgb, bg_rgb, fg_idx, bg_idx} = {}) {
         if (x < 0 || x >= doc.columns || y < 0 || y >= doc.rows) return;
         const i = doc.columns * y + x;
-        if (prev_cursor) {
-            this.undo_history.push(x, y, doc.data[i], {prev_x: prev_cursor.prev_x, prev_y: prev_cursor.prev_y, post_x: cursor.x, post_y: cursor.y});
+        if (doc.layers.length > 1) {
+            const layer_data = doc.layers[active_layer].data;
+            const prev = layer_data[i];
+            const undo_block = prev !== null && prev !== undefined
+                ? Object.assign({}, prev)
+                : {fg: 7, bg: 0, code: 32, _was_transparent: true};
+            if (prev_cursor) {
+                this.undo_history.push(x, y, undo_block, {prev_x: prev_cursor.prev_x, prev_y: prev_cursor.prev_y, post_x: cursor.x, post_y: cursor.y});
+            } else {
+                this.undo_history.push(x, y, undo_block);
+            }
+            layer_data[i] = {code, fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx};
+            const composited = libtextmode.composite_cell_at(doc.layers, i, doc.extended_colors);
+            doc.data[i] = composited;
+            libtextmode.render_at(render, x, y, composited, doc.c64_background);
+            if (connection) connection.draw(x, y, layer_data[i]);
         } else {
-            this.undo_history.push(x, y, doc.data[i]);
+            if (prev_cursor) {
+                this.undo_history.push(x, y, doc.data[i], {prev_x: prev_cursor.prev_x, prev_y: prev_cursor.prev_y, post_x: cursor.x, post_y: cursor.y});
+            } else {
+                this.undo_history.push(x, y, doc.data[i]);
+            }
+            doc.data[i] = {code, fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx};
+            libtextmode.render_at(render, x, y, doc.data[i], doc.c64_background);
+            if (connection) connection.draw(x, y, doc.data[i]);
         }
-        doc.data[i] = {code, fg, bg, fg_rgb, bg_rgb, fg_idx, bg_idx};
-        libtextmode.render_at(render, x, y, doc.data[i], doc.c64_background);
-        if (connection) connection.draw(x, y, doc.data[i]);
         if (this.mirror_mode && mirrored) {
             const opposing_x = Math.floor(doc.columns / 2) - (x - Math.ceil(doc.columns / 2)) - 1;
             this.change_data(opposing_x, y, libtextmode.flip_code_x(code), fg, bg, undefined, undefined, false, {fg_rgb, bg_rgb, fg_idx, bg_idx});
@@ -1121,8 +1185,137 @@ class TextModeDoc extends events.EventEmitter {
         this.undo_history.push_scroll_canvas_right();
     }
 
+    _recomposite_all() {
+        if (doc.layers.length === 1) {
+            doc.data = doc.layers[0].data;
+            return;
+        }
+        const composite = libtextmode.composite_layers(doc.layers, doc.columns, doc.rows, doc.extended_colors);
+        for (let i = 0; i < composite.length; i++) doc.data[i] = composite[i];
+    }
+
+    set active_layer(idx) {
+        if (!doc || !doc.layers || idx < 0 || idx >= doc.layers.length) return;
+        active_layer = idx;
+        this.undo_history.reset_undos();
+        this.emit("layers_changed");
+    }
+
+    add_layer(name = null) {
+        const layer_name = name || `Layer ${doc.layers.length + 1}`;
+        const new_layer = libtextmode.make_layer(layer_name, doc.columns, doc.rows);
+        if (doc.layers.length === 1) {
+            const composite = new Array(doc.columns * doc.rows);
+            for (let i = 0; i < composite.length; i++) composite[i] = Object.assign({}, doc.layers[0].data[i]);
+            doc.data = composite;
+        }
+        doc.layers.push(new_layer);
+        active_layer = doc.layers.length - 1;
+        this.undo_history.reset_undos();
+        this.emit("layers_changed");
+    }
+
+    delete_layer(idx) {
+        if (!doc.layers || doc.layers.length <= 1) return;
+        doc.layers.splice(idx, 1);
+        if (active_layer >= doc.layers.length) active_layer = doc.layers.length - 1;
+        this.undo_history.reset_undos();
+        this._recomposite_all();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
+    move_layer_up(idx) {
+        if (!doc.layers || idx >= doc.layers.length - 1) return;
+        [doc.layers[idx], doc.layers[idx + 1]] = [doc.layers[idx + 1], doc.layers[idx]];
+        if (active_layer === idx) active_layer = idx + 1;
+        else if (active_layer === idx + 1) active_layer = idx;
+        this._recomposite_all();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
+    move_layer_down(idx) {
+        if (!doc.layers || idx <= 0) return;
+        [doc.layers[idx - 1], doc.layers[idx]] = [doc.layers[idx], doc.layers[idx - 1]];
+        if (active_layer === idx) active_layer = idx - 1;
+        else if (active_layer === idx - 1) active_layer = idx;
+        this._recomposite_all();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
+    rename_layer(idx, name) {
+        if (!doc.layers || idx < 0 || idx >= doc.layers.length) return;
+        doc.layers[idx].name = name;
+        this.emit("layers_changed");
+    }
+
+    set_layer_visible(idx, visible) {
+        if (!doc.layers || idx < 0 || idx >= doc.layers.length) return;
+        doc.layers[idx].visible = visible;
+        this._recomposite_all();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
+    set_layer_locked(idx, locked) {
+        if (!doc.layers || idx < 0 || idx >= doc.layers.length) return;
+        doc.layers[idx].locked = locked;
+        this.emit("layers_changed");
+    }
+
+    set_layer_opacity(idx, opacity) {
+        if (!doc.layers || idx < 0 || idx >= doc.layers.length) return;
+        doc.layers[idx].opacity = Math.max(0, Math.min(1, opacity));
+        this._recomposite_all();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
+    set_layer_blend_mode(idx, mode) {
+        if (!doc.layers || idx < 0 || idx >= doc.layers.length) return;
+        doc.layers[idx].blend_mode = mode;
+        this._recomposite_all();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
+    merge_layer_down(idx) {
+        if (!doc.layers || idx <= 0) return;
+        const top = doc.layers[idx];
+        const bot = doc.layers[idx - 1];
+        for (let i = 0; i < bot.data.length; i++) {
+            const {composite_block} = require("../libtextmode/blend");
+            bot.data[i] = composite_block(top.data[i], bot.data[i], top.opacity, top.blend_mode, doc.extended_colors) || {fg: 7, bg: 0, code: 32};
+        }
+        doc.layers.splice(idx, 1);
+        if (active_layer >= doc.layers.length) active_layer = doc.layers.length - 1;
+        this.undo_history.reset_undos();
+        this._recomposite_all();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
+    merge_all_layers() {
+        const merged = libtextmode.composite_layers(doc.layers, doc.columns, doc.rows, doc.extended_colors);
+        const bg_layer = libtextmode.make_layer("Background", doc.columns, doc.rows);
+        bg_layer.data = merged;
+        doc.layers = [bg_layer];
+        doc.data = merged;
+        active_layer = 0;
+        this.undo_history.reset_undos();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
+    flatten() {
+        this.merge_all_layers();
+    }
+
     async open(file) {
         doc = await libtextmode.read_file(file);
+        active_layer = 0;
         this.undo_history.reset_undos();
         this.file = file;
         await this.start_rendering();
