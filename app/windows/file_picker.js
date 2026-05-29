@@ -137,6 +137,7 @@ async function show_preview_from_zip(key) {
         const bytes = nav_state.zip_data[key];
         if (!bytes) throw new Error("not found");
         const doc = libtextmode.read_bytes(bytes, path.basename(key));
+        if (doc.layers) doc.data = libtextmode.composite_layers(doc.layers, doc.columns, doc.rows, doc.extended_colors);
         if (my_gen !== preview_gen) return;
         const {canvas: src} = await libtextmode.render(doc);
         if (my_gen !== preview_gen) return;
@@ -501,6 +502,7 @@ async function show_preview(file_path) {
     $("preview_info").innerHTML = `<div class="preview_dim">Rendering…</div>`;
     try {
         const doc = await libtextmode.read_file(file_path);
+        if (doc.layers) doc.data = libtextmode.composite_layers(doc.layers, doc.columns, doc.rows, doc.extended_colors);
         if (my_gen !== preview_gen) return;
         const {canvas: src} = await libtextmode.render(doc);
         if (my_gen !== preview_gen) return;
