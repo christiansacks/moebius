@@ -6,6 +6,8 @@ const libtextmode = require("../libtextmode/libtextmode");
 const {unzipSync} = require("fflate");
 
 const SUPPORTED_EXT = new Set([".ans", ".xb", ".bin", ".diz", ".asc", ".txt", ".nfo", ".msg", ".mob"]);
+const MAX_PREVIEW_BYTES = 100 * 1024;
+const NO_PREVIEW_EXT = new Set([".txt", ".nfo"]);
 const COLO_API = "https://api.sixteencolors.net/v0";
 
 let current_dir = os.homedir();
@@ -420,10 +422,22 @@ function select_entry(index) {
 
     if (nav_state?.type === "zip" && !entry.is_dir) {
         selected_zip_key = nav_state.subdir + entry.name;
-        show_preview_from_zip(selected_zip_key);
+        const ext = path.extname(entry.name).toLowerCase();
+        if (entry.size <= MAX_PREVIEW_BYTES && !NO_PREVIEW_EXT.has(ext)) {
+            show_preview_from_zip(selected_zip_key);
+        } else {
+            clear_preview();
+            $("preview_info").innerHTML = `<div class="preview_dim">No preview available</div>`;
+        }
     } else if (!nav_state && !entry.is_dir && !entry.is_zip) {
         selected_zip_key = null;
-        show_preview(entry.full);
+        const ext = path.extname(entry.name).toLowerCase();
+        if (entry.size <= MAX_PREVIEW_BYTES && !NO_PREVIEW_EXT.has(ext)) {
+            show_preview(entry.full);
+        } else {
+            clear_preview();
+            $("preview_info").innerHTML = `<div class="preview_dim">No preview available</div>`;
+        }
     } else {
         selected_zip_key = null;
         clear_preview();
