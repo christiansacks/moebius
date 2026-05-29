@@ -29,7 +29,36 @@
             <div class = "tool ghosted" id = "move_reference_mode"></div>
         </div>
         <div id= "preview">
-            <div id = "view_frame" class = "hidden"></div>
+            <div id = "preview_scroll">
+                <div id = "view_frame" class = "hidden"></div>
+            </div>
+            <div id = "layers_panel">
+                <div id = "layers_header">
+                    <span id = "layers_title">Layers</span>
+                    <div id = "layers_toolbar">
+                        <div class = "layer_btn" id = "layer_add" title = "Add Layer">+</div>
+                        <div class = "layer_btn" id = "layer_move_up" title = "Move Layer Up">▲</div>
+                        <div class = "layer_btn" id = "layer_move_down" title = "Move Layer Down">▼</div>
+                        <div class = "layer_btn" id = "layer_merge_down" title = "Merge Down">⊕</div>
+                        <div class = "layer_btn" id = "layer_merge_all" title = "Flatten All Layers">⊞</div>
+                        <div class = "layer_btn" id = "layer_delete" title = "Delete Layer">×</div>
+                    </div>
+                </div>
+                <div id = "layers_controls">
+                    <select id = "layer_blend_mode">
+                        <option value = "normal">Normal</option>
+                        <option value = "multiply">Multiply</option>
+                        <option value = "screen">Screen</option>
+                        <option value = "overlay">Overlay</option>
+                    </select>
+                    <div id = "layers_opacity">
+                        <input type = "range" id = "layer_opacity" min = "0" max = "100" value = "100">
+                        <input type = "number" id = "layer_opacity_num" min = "0" max = "100" value = "100">
+                        <span>%</span>
+                    </div>
+                </div>
+                <div id = "layers_list"></div>
+            </div>
         </div>
         <div id = "toolbar">
             <div class = "panel hidden" id = "select_panel">

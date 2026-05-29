@@ -236,6 +236,7 @@ function view_menu_template(win) {
             {label: "Show Status Bar", id: "show_status_bar", accelerator: "CmdorCtrl+/", click(item) {win.send("show_statusbar", item.checked);}, type: "checkbox", checked: true},
             {label: "Show Tool Bar", id: "show_tool_bar", accelerator: "CmdorCtrl+T", click(item) {win.send("show_toolbar", item.checked);}, type: "checkbox", checked: true},
             {label: "Show Preview", id: "show_preview", accelerator: "CmdorCtrl+Alt+P", click(item) {win.send("show_preview", item.checked);}, type: "checkbox", checked: true},
+            {label: "Show Layers Panel", id: "show_layers_panel", accelerator: "CmdorCtrl+Shift+L", click(item) {win.send("show_layers_panel", item.checked);}, type: "checkbox", checked: true},
             {type: "separator"},
             {label: "Previous Character Set", id: "previous_character_set", accelerator: "Ctrl+,", click(item) {win.send("previous_character_set");}, enabled: true},
             {label: "Next Character Set", id: "next_character_set", accelerator: "Ctrl+.", click(item) {win.send("next_character_set");}, enabled: true},
@@ -297,7 +298,7 @@ function colors_menu_template(win) {
             {type: "separator"},
             {label: "Use iCE Colors", id: "ice_colors", accelerator: "CmdorCtrl+E", click(item) {win.send("ice_colors", item.checked);}, type: "checkbox", checked: false},
             {label: "Extended Colors (256/True-Color)", id: "extended_colors", accelerator: "CmdorCtrl+Shift+E", click(item) {win.send("extended_colors", item.checked);}, type: "checkbox", checked: false},
-            {label: "Interpret base-16 as xterm (legacy)", id: "xterm_base16", accelerator: "CmdorCtrl+Shift+L", click(item) {win.send("xterm_base16", item.checked);}, type: "checkbox", checked: false},
+            {label: "Interpret base-16 as xterm (legacy)", id: "xterm_base16", accelerator: "CmdorCtrl+Shift+Y", click(item) {win.send("xterm_base16", item.checked);}, type: "checkbox", checked: false},
             {type: "separator"},
             {label: "Remove iCE Colors as New Document", id: "remove_ice_colors", click(item) {win.send("remove_ice_colors");}},
         ]

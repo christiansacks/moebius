@@ -52,7 +52,7 @@ function update_frame() {
         const height = Math.min(Math.ceil(view_rect.height / (scale_factor * zoom)), render.height / scale_factor);
         const top = Math.ceil(viewport.scrollTop / (scale_factor * zoom));
         const left = Math.ceil(viewport.scrollLeft / (scale_factor * zoom));
-        const preview = $("preview");
+        const preview = $("preview_scroll");
         view_frame.style.width = `${width}px`;
         view_frame.style.height = `${height}px`;
         view_frame.style.top = `${top}px`;
@@ -70,7 +70,7 @@ function add(new_render) {
     const ice_color_container = $("ice_color_container");
     const blink_off_container = $("blink_off_container");
     const blink_on_container = $("blink_on_container");
-    const preview = $("preview");
+    const preview = $("preview_scroll");
     if (render) {
         for (const canvas of render.ice_color_collection) ice_color_container.removeChild(canvas);
         for (const canvas of render.blink_off_collection) blink_off_container.removeChild(canvas);
@@ -89,7 +89,7 @@ function add(new_render) {
 }
 
 function update_with_mouse_pos(client_x, client_y) {
-    const preview = $("preview");
+    const preview = $("preview_scroll");
     const viewport = $("viewport");
     const preview_rect = preview.getBoundingClientRect();
     const viewport_rect = viewport.getBoundingClientRect();
@@ -108,7 +108,7 @@ function mouse_down(event) {
     if (event.button == 0) {
         mouse_button = true;
         update_with_mouse_pos(event.clientX, event.clientY);
-        $("preview").classList.add("grabbing");
+        $("preview_scroll").classList.add("grabbing");
     }
 }
 
@@ -119,7 +119,7 @@ function mouse_move(event) {
 function unregister_button(event) {
     if (mouse_button) {
         mouse_button = false;
-        $("preview").classList.remove("grabbing");
+        $("preview_scroll").classList.remove("grabbing");
     }
 }
 
@@ -127,10 +127,10 @@ window.addEventListener("DOMContentLoaded", (event) => {
     $("viewport").addEventListener("scroll", event => update_frame(), true);
     window.addEventListener("resize", event => update_frame(), true);
     document.addEventListener("canvas_zoom_changed", () => update_frame());
-    $("preview").addEventListener("mousedown", mouse_down, true);
-    $("preview").addEventListener("mousemove", mouse_move, true);
-    $("preview").addEventListener("mouseup", unregister_button, true);
-    $("preview").addEventListener("mouseout", unregister_button, true);
+    $("preview_scroll").addEventListener("mousedown", mouse_down, true);
+    $("preview_scroll").addEventListener("mousemove", mouse_move, true);
+    $("preview_scroll").addEventListener("mouseup", unregister_button, true);
+    $("preview_scroll").addEventListener("mouseout", unregister_button, true);
 }, true);
 
 function goto_row(row) {

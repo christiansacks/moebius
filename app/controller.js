@@ -8,6 +8,7 @@ const {HourlySaver} = require("./hourly_saver");
 const {remove_ice_colors} = require("./libtextmode/libtextmode");
 let hourly_saver, backup_folder;
 require("./document/ui/canvas");
+const layers_panel = require("./document/ui/layers_panel");
 require("./document/tools/select");
 require("./document/tools/brush");
 require("./document/tools/shifter");
@@ -40,6 +41,7 @@ doc.on("disconnected", () => {
 doc.on("ready", () => {
     send("ready");
     tools.start(tools.modes.SELECT);
+    layers_panel.init();
 });
 
 async function process_save(method = 'save', destroy_when_done = false, ignore_controlcharacters = false) {
@@ -185,3 +187,4 @@ on("remove_ice_colors", (event) => send("new_document", remove_ice_colors(doc)))
 on("connect_to_server", (event, {server, pass}) => doc.connect_to_server(server, pass));
 on("backup_folder", (event, folder) => backup_folder = folder);
 on("use_backup", (event, value) => use_backup(value));
+on("show_layers_panel", (event, visible) => layers_panel.show_layers_panel(visible));

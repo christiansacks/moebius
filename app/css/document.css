@@ -4,6 +4,7 @@
     --statusbar-height: 22px;
     --preview-width: 300px;
     --chat-height: 0px;
+    --layers-panel-height: 250px;
 }
 #sidebar {
     float: left;
@@ -266,19 +267,158 @@ body.dark #viewport {
     background-color: var(--mid-color);
     height: calc(100% - var(--statusbar-height));
     border-left: 1px solid var(--border-color);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+#preview_scroll {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    position: relative;
     cursor: grab;
 }
-#preview.grabbing {
+#preview_scroll.grabbing {
     cursor: grabbing;
 }
-#preview > canvas {
+#preview_scroll > canvas {
     display: block;
     width: calc(var(--preview-width) - 40px);
     margin: 0px 20px;
     image-rendering: auto !important;
     pointer-events: none;
+}
+#layers_panel {
+    flex: 0 0 var(--layers-panel-height);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--mid-color);
+    font-size: 11px;
+}
+#layers_header {
+    display: flex;
+    align-items: center;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border-color);
+    gap: 4px;
+}
+#layers_title {
+    flex: 1;
+    font-weight: bold;
+    font-size: 11px;
+}
+#layers_toolbar {
+    display: flex;
+    gap: 2px;
+}
+.layer_btn {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 13px;
+    line-height: 1;
+    opacity: 0.7;
+}
+.layer_btn:hover {
+    opacity: 1;
+    background-color: rgba(128, 128, 128, 0.3);
+}
+.layer_btn.disabled {
+    opacity: 0.25;
+    cursor: default;
+    pointer-events: none;
+}
+#layers_controls {
+    display: flex;
+    align-items: center;
+    padding: 4px 6px;
+    gap: 6px;
+    border-bottom: 1px solid var(--border-color);
+}
+#layer_blend_mode {
+    flex: 1;
+    font-size: 11px;
+    background-color: var(--mid-color);
+    border: 1px solid var(--border-color);
+    color: inherit;
+    padding: 2px;
+    border-radius: 2px;
+}
+#layers_opacity {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+#layer_opacity {
+    width: 60px;
+}
+#layer_opacity_num {
+    width: 32px;
+    font-size: 11px;
+    background-color: var(--mid-color);
+    border: 1px solid var(--border-color);
+    color: inherit;
+    text-align: right;
+    padding: 1px 2px;
+}
+#layers_list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.layer_item {
+    display: flex;
+    align-items: center;
+    padding: 3px 6px;
+    gap: 5px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(128,128,128,0.15);
+}
+.layer_item:hover {
+    background-color: rgba(128, 128, 128, 0.15);
+}
+.layer_item.active {
+    background-color: rgba(128, 128, 128, 0.3);
+}
+.layer_vis, .layer_lock {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+.layer_vis:hover, .layer_lock:hover {
+    opacity: 1;
+}
+.layer_vis.on, .layer_lock.on {
+    opacity: 1;
+}
+.layer_name {
+    flex: 1;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    outline: none;
+}
+.layer_name[contenteditable="true"] {
+    background: rgba(128,128,128,0.2);
+    padding: 0 2px;
+    border-radius: 2px;
+    white-space: nowrap;
+    overflow: visible;
 }
 #view_frame {
     box-sizing: border-box;
@@ -289,6 +429,26 @@ body.dark #viewport {
 body.dark #preview {
     background-color: var(--dark-mid-color);
     border-color: var(--dark-border-color);
+}
+body.dark #layers_panel {
+    background-color: var(--dark-mid-color);
+    border-color: var(--dark-border-color);
+}
+body.dark #layers_header {
+    border-color: var(--dark-border-color);
+}
+body.dark #layers_controls {
+    border-color: var(--dark-border-color);
+}
+body.dark #layer_blend_mode {
+    background-color: var(--dark-mid-color);
+    border-color: var(--dark-border-color);
+    color: white;
+}
+body.dark #layer_opacity_num {
+    background-color: var(--dark-mid-color);
+    border-color: var(--dark-border-color);
+    color: white;
 }
 #canvas_container {
     position: relative;
