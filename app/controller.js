@@ -71,17 +71,32 @@ function is_zip_extract(file) {
 }
 
 function save(destroy_when_done = false, save_without_sauce = false) {
-    if (doc.file && !is_zip_extract(doc.file)) {
+    if (!doc.file || is_zip_extract(doc.file)) {
+        save_as(destroy_when_done);
+    } else if (doc.is_layered && !doc.file.endsWith(".mob")) {
+        const choice = msg_box(
+            "Layered document",
+            `"${path.basename(doc.file)}" has multiple layers.\n\nSave as .mob to preserve layers, or flatten and overwrite the original file?`,
+            {buttons: ["Save as .mob…", "Flatten and overwrite", "Cancel"], defaultId: 0, cancelId: 2}
+        );
+        if (choice === 0) {
+            save_as(destroy_when_done);
+        } else if (choice === 1) {
+            doc.flatten();
+            doc.edited = false;
+            doc.save(save_without_sauce);
+            if (destroy_when_done) send("destroy");
+        }
+    } else {
         doc.edited = false;
         doc.save(save_without_sauce);
         if (destroy_when_done) send("destroy");
-    } else {
-        save_as(destroy_when_done);
     }
 }
 
 function save_as(destroy_when_done = false) {
-    const file = save_box(doc.file, "ans", {filters: [{name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]}, {name: "Synchronet MSG", extensions: ["msg"]}, {name: "XBin", extensions: ["xb"]}, {name: "Binary Text", extensions: ["bin"]}]});
+    const default_ext = doc.is_layered ? "mob" : "ans";
+    const file = save_box(doc.file, default_ext, {filters: [{name: "Moebius Layered", extensions: ["mob"]}, {name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]}, {name: "Synchronet MSG", extensions: ["msg"]}, {name: "XBin", extensions: ["xb"]}, {name: "Binary Text", extensions: ["bin"]}]});
     if (file) {
         doc.file = file;
         doc.edited = false;
@@ -90,7 +105,7 @@ function save_as(destroy_when_done = false) {
 }
 
 function save_without_sauce() {
-    const file = save_box(doc.file, "ans", {filters: [{name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]}, {name: "Synchronet MSG", extensions: ["msg"]}, {name: "XBin", extensions: ["xb"]}, {name: "Binary Text", extensions: ["bin"]}]});
+    const file = save_box(doc.file, "ans", {filters: [{name: "Moebius Layered", extensions: ["mob"]}, {name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]}, {name: "Synchronet MSG", extensions: ["msg"]}, {name: "XBin", extensions: ["xb"]}, {name: "Binary Text", extensions: ["bin"]}]});
     if (file) {
         doc.file = file;
         doc.edited = false;

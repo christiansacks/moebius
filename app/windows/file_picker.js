@@ -5,7 +5,7 @@ const electron = require("electron");
 const libtextmode = require("../libtextmode/libtextmode");
 const {unzipSync} = require("fflate");
 
-const SUPPORTED_EXT = new Set([".ans", ".xb", ".bin", ".diz", ".asc", ".txt", ".nfo", ".msg"]);
+const SUPPORTED_EXT = new Set([".ans", ".xb", ".bin", ".diz", ".asc", ".txt", ".nfo", ".msg", ".mob"]);
 const COLO_API = "https://api.sixteencolors.net/v0";
 
 let current_dir = os.homedir();

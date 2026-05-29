@@ -771,6 +771,7 @@ class TextModeDoc extends events.EventEmitter {
     get title() {return doc.title;}
     get author() {return doc.author;}
     get group() {return doc.group;}
+    get date() {return doc.date;}
     get comments() {return doc.comments;}
     get palette() {return doc.palette;}
     get font_name() {return doc.font_name;}

@@ -6,6 +6,7 @@ const {XBin, encode_as_xbin} = require("./xbin");
 const {CtrlA, encode_as_ctrla} = require("./ctrla");
 const {ega, c64, convert_ega_to_style, has_ansi_palette, has_c64_palette} = require("./palette");
 const {BLEND_MODES, composite_block} = require("./blend");
+const {read_mob, encode_as_mob} = require("./mob");
 const path = require("path");
 const {current_date, resize_canvas} = require("./textmode");
 const {cp437_to_unicode, cp437_to_unicode_bytes, unicode_to_cp437} = require("./encodings");
@@ -15,6 +16,7 @@ const upng = require("upng-js");
 function read_bytes(bytes, file) {
     let result;
     switch (path.extname(file).toLowerCase()) {
+        case ".mob": return read_mob(bytes);
         case ".bin": result = new BinaryText(bytes); break;
         case ".xb": result = new XBin(bytes); break;
         case ".msg": result = new CtrlA(bytes); break;
@@ -83,6 +85,10 @@ async function animate({file, ctx}) {
 function write_file(doc, file, {utf8 = false, save_without_sauce = false} = {}) {
     let bytes;
     switch (path.extname(file).toLowerCase()) {
+        case ".mob":
+        bytes = encode_as_mob(doc);
+        fs.writeFileSync(file, bytes);
+        return;
         case ".bin":
         bytes = encode_as_bin(doc, save_without_sauce);
         break;
@@ -623,17 +629,19 @@ function composite_layers(layers, columns, rows, extended_colors) {
 
 function new_document({columns = 80, rows = 100, title = "", author = "", group = "", date = "", palette = ega, font_name = "IBM VGA", ice_colors = false, extended_colors, use_9px_font = false, comments = "", data, layers, c64_background = undefined} = {}) {
     const auto_ext = (extended_colors !== undefined) ? extended_colors
+        : layers ? layers.some(l => l.data && l.data.some(b => b && (b.fg_rgb || b.bg_rgb || b.fg_idx !== undefined || b.bg_idx !== undefined)))
         : (data ? data.some(b => b.fg_rgb || b.bg_rgb || b.fg_idx !== undefined || b.bg_idx !== undefined) : false);
     const doc = {columns, rows, title, author, group, date: (date != "") ? date : current_date(), palette, font_name, ice_colors, extended_colors: auto_ext, use_9px_font, comments, c64_background};
-    if (!data || data.length != columns * rows) {
-        doc.data = new Array(columns * rows);
-        for (let i = 0; i < doc.data.length; i++) doc.data[i] = {fg: 7, bg: 0, code: 32};
-    } else {
-        doc.data = data;
-    }
     if (layers) {
         doc.layers = layers;
+        doc.data = composite_layers(layers, columns, rows, auto_ext);
     } else {
+        if (!data || data.length != columns * rows) {
+            doc.data = new Array(columns * rows);
+            for (let i = 0; i < doc.data.length; i++) doc.data[i] = {fg: 7, bg: 0, code: 32};
+        } else {
+            doc.data = data;
+        }
         const bg_layer = make_layer("Background", columns, rows);
         bg_layer.data = doc.data;
         doc.layers = [bg_layer];
@@ -781,4 +789,4 @@ function remove_ice_colors(doc) {
     return new_doc;
 }
 
-module.exports = {Font, read_bytes, read_file, write_file, animate, render, render_split, render_at, render_insert_column, render_delete_column, render_insert_row, render_delete_row, new_document, clone_document, resize_canvas, cp437_to_unicode, cp437_to_unicode_bytes, unicode_to_cp437, render_blocks, merge_blocks, flip_code_x, flip_x, flip_y, rotate, insert_column, insert_row, delete_column, delete_row, scroll_canvas_up, scroll_canvas_down, scroll_canvas_left, scroll_canvas_right, render_scroll_canvas_up, render_scroll_canvas_down, render_scroll_canvas_left, render_scroll_canvas_right, get_data_url, ega, c64, convert_ega_to_style, compress, uncompress, get_blocks, get_all_blocks, export_as_png, export_as_apng, has_ansi_palette, has_c64_palette, encode_as_bin, encode_as_xbin, encode_as_ansi, remove_ice_colors, make_layer, composite_cell_at, composite_layers, BLEND_MODES};
+module.exports = {Font, read_bytes, read_file, write_file, animate, render, render_split, render_at, render_insert_column, render_delete_column, render_insert_row, render_delete_row, new_document, clone_document, resize_canvas, cp437_to_unicode, cp437_to_unicode_bytes, unicode_to_cp437, render_blocks, merge_blocks, flip_code_x, flip_x, flip_y, rotate, insert_column, insert_row, delete_column, delete_row, scroll_canvas_up, scroll_canvas_down, scroll_canvas_left, scroll_canvas_right, render_scroll_canvas_up, render_scroll_canvas_down, render_scroll_canvas_left, render_scroll_canvas_right, get_data_url, ega, c64, convert_ega_to_style, compress, uncompress, get_blocks, get_all_blocks, export_as_png, export_as_apng, has_ansi_palette, has_c64_palette, encode_as_bin, encode_as_xbin, encode_as_ansi, remove_ice_colors, make_layer, composite_cell_at, composite_layers, BLEND_MODES, encode_as_mob};
