@@ -1316,7 +1316,8 @@ class TextModeDoc extends events.EventEmitter {
     }
 
     async open(file) {
-        doc = await libtextmode.read_file(file);
+        const parsed = await libtextmode.read_file(file);
+        doc = libtextmode.new_document(parsed);
         active_layer = 0;
         this.undo_history.reset_undos();
         this.file = file;
