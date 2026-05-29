@@ -780,6 +780,7 @@ class TextModeDoc extends events.EventEmitter {
     get xterm_base16() {return doc.xterm_base16;}
     get use_9px_font() {return doc.use_9px_font;}
     get data() { return doc && doc.layers ? doc.layers[active_layer].data : doc?.data; }
+    get composite() { return doc ? doc.data : null; }
     get is_layered() { return doc && doc.layers && doc.layers.length > 1; }
     get active_layer() { return active_layer; }
     get layers() { return doc ? doc.layers : null; }

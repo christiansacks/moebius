@@ -46,8 +46,8 @@ doc.on("ready", () => {
 
 async function process_save(method = 'save', destroy_when_done = false, ignore_controlcharacters = false) {
     var ctrl = false;
-    doc.data.forEach((block, index) => {
-        if (block.code == 9 || block.code == 10 || block.code == 13 || block.code == 26) ctrl = true;
+    (doc.composite || []).forEach((block) => {
+        if (block && (block.code == 9 || block.code == 10 || block.code == 13 || block.code == 26)) ctrl = true;
     });
     if (ctrl && ignore_controlcharacters == false) {
         send("show_controlcharacters", {method, destroy_when_done});
