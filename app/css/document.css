@@ -409,7 +409,8 @@ body.dark #viewport {
     font-size: 11px;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: pre-wrap;
+    word-break: break-word;
     min-width: 0;
     outline: none;
 }
@@ -417,7 +418,7 @@ body.dark #viewport {
     background: rgba(128,128,128,0.2);
     padding: 0 2px;
     border-radius: 2px;
-    white-space: nowrap;
+    white-space: pre-wrap;
     overflow: visible;
 }
 #view_frame {
@@ -449,6 +450,58 @@ body.dark #layer_opacity_num {
     background-color: var(--dark-mid-color);
     border-color: var(--dark-border-color);
     color: white;
+}
+#layers_resize_handle {
+    height: 5px;
+    flex-shrink: 0;
+    cursor: ns-resize;
+    background: transparent;
+    transition: background 0.1s;
+}
+#layers_resize_handle:hover {
+    background: rgba(128, 128, 128, 0.35);
+}
+#layer_context_menu {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    background-color: var(--mid-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 3px 0;
+    min-width: 150px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+    font-size: 12px;
+}
+#layer_context_menu.visible {
+    display: block;
+}
+.ctx_item {
+    padding: 5px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+.ctx_item:hover {
+    background-color: rgba(128, 128, 128, 0.25);
+}
+.ctx_item.disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+}
+.ctx_sep {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 3px 0;
+}
+body.dark #layer_context_menu {
+    background-color: var(--dark-mid-color);
+    border-color: var(--dark-border-color);
+    color: white;
+}
+body.dark .ctx_sep {
+    background-color: var(--dark-border-color);
 }
 #canvas_container {
     position: relative;

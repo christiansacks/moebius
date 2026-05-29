@@ -3,6 +3,48 @@ const {send} = require("../../senders");
 
 function $(id) { return document.getElementById(id); }
 
+let ctx_target_idx = -1;
+
+function show_context_menu(idx, x, y) {
+    ctx_target_idx = idx;
+    const layer = doc.layers[idx];
+    const count = doc.layers.length;
+    const menu = $("layer_context_menu");
+    menu.innerHTML = "";
+
+    const add_item = (label, action, disabled = false) => {
+        const el = document.createElement("div");
+        el.className = "ctx_item" + (disabled ? " disabled" : "");
+        el.textContent = label;
+        if (!disabled) el.addEventListener("mousedown", (e) => { e.preventDefault(); hide_context_menu(); action(); });
+        menu.appendChild(el);
+    };
+    const add_sep = () => { const el = document.createElement("div"); el.className = "ctx_sep"; menu.appendChild(el); };
+
+    add_item("Rename", () => {
+        const item = document.querySelector(`.layer_item[data-index="${idx}"] .layer_name`);
+        if (item) start_rename(idx, item);
+    });
+    add_item("Duplicate", () => doc.duplicate_layer());
+    add_sep();
+    add_item("Move Up", () => doc.move_layer_up(idx), idx >= count - 1);
+    add_item("Move Down", () => doc.move_layer_down(idx), idx <= 0);
+    add_sep();
+    add_item("Merge Down", () => doc.merge_layer_down(idx), idx <= 0);
+    add_sep();
+    add_item("Delete", () => { if (count > 1) doc.delete_layer(idx); }, count <= 1);
+
+    menu.classList.add("visible");
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const mw = menu.offsetWidth || 160, mh = menu.offsetHeight || 180;
+    menu.style.left = (x + mw > vw ? vw - mw - 4 : x) + "px";
+    menu.style.top = (y + mh > vh ? vh - mh - 4 : y) + "px";
+}
+
+function hide_context_menu() {
+    $("layer_context_menu").classList.remove("visible");
+}
+
 function set_btn_state(id, disabled) {
     const el = $(id);
     if (disabled) el.classList.add("disabled");
@@ -39,13 +81,22 @@ function render_list() {
 
         const name = document.createElement("div");
         name.className = "layer_name";
-        name.textContent = layer.name;
+        name.innerText = layer.name;
         name.addEventListener("dblclick", () => start_rename(i, name));
 
+        item.tabIndex = 0;
         item.appendChild(vis);
         item.appendChild(lock);
         item.appendChild(name);
-        item.addEventListener("click", () => { doc.active_layer = i; });
+        item.addEventListener("click", () => { if (doc.active_layer !== i) doc.active_layer = i; item.focus(); });
+        item.addEventListener("keydown", (e) => {
+            if (e.key === "F2") { e.preventDefault(); start_rename(i, name); }
+        });
+        item.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            doc.active_layer = i;
+            show_context_menu(i, e.clientX, e.clientY);
+        });
         list.appendChild(item);
     }
 }
@@ -80,12 +131,12 @@ function start_rename(idx, el) {
 
     const finish = () => {
         el.contentEditable = "false";
-        const trimmed = el.textContent.trim();
+        const trimmed = el.innerText.trim();
         doc.rename_layer(idx, trimmed || doc.layers[idx].name);
     };
     el.addEventListener("blur", finish, {once: true});
     el.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") { e.preventDefault(); el.blur(); }
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); el.blur(); }
         if (e.key === "Escape") { el.textContent = doc.layers[idx].name; el.blur(); }
     });
 }
@@ -99,6 +150,32 @@ function show_layers_panel(visible) {
 function init() {
     doc.on("layers_changed", () => update_panel());
     doc.on("new_document", () => update_panel());
+
+    // dismiss context menu on any click outside it
+    document.addEventListener("mousedown", (e) => {
+        if (!$("layer_context_menu").contains(e.target)) hide_context_menu();
+    });
+
+    // resize handle drag
+    const handle = $("layers_resize_handle");
+    let drag_start_y = 0, drag_start_h = 0, dragging = false;
+    handle.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        dragging = true;
+        drag_start_y = e.clientY;
+        const cur = getComputedStyle(document.documentElement).getPropertyValue("--layers-panel-height");
+        drag_start_h = parseInt(cur) || 250;
+        document.body.style.userSelect = "none";
+    });
+    document.addEventListener("mousemove", (e) => {
+        if (!dragging) return;
+        const delta = drag_start_y - e.clientY;
+        const new_h = Math.max(80, Math.min(700, drag_start_h + delta));
+        document.documentElement.style.setProperty("--layers-panel-height", new_h + "px");
+    });
+    document.addEventListener("mouseup", () => {
+        if (dragging) { dragging = false; document.body.style.userSelect = ""; }
+    });
 
     $("layer_add").addEventListener("click", () => doc.add_layer());
     $("layer_delete").addEventListener("click", () => {

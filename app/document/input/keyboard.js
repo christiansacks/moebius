@@ -322,6 +322,7 @@ class KeyboardEvent extends events.EventEmitter {
     }
 
     keydown(event) {
+        if (document.activeElement && document.activeElement.contentEditable === "true" && document.activeElement !== this.chat_input) return;
         if (document.activeElement == this.chat_input) {
             if (event.code == "Enter" || event.code == "NumpadEnter" && this.chat_input.value){
                 this.chat(this.chat_input.value);
