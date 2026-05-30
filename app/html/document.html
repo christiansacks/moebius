@@ -26,6 +26,8 @@
             <div class = "seperator"></div>
             <div class = "tool" id = "sample_mode"></div>
             <div class = "seperator"></div>
+            <div class = "tool" id = "font_mode" title = "TDF Font Text Tool"></div>
+            <div class = "seperator"></div>
             <div class = "tool ghosted" id = "move_reference_mode"></div>
         </div>
         <div id= "preview">
@@ -106,6 +108,37 @@
                     <canvas id = "sample_fg" width = "32" height = "32"></canvas>
                     Background: <div id = "bg_value"></div>
                     <canvas id = "sample_bg" width = "32" height = "32"></canvas>
+                </div>
+            </div>
+            <div class = "panel hidden" id = "font_panel">
+                <div id = "font_panel_inner">
+                    <div id = "font_current_name">No font selected</div>
+                    <button id = "font_change_btn">Choose Font…</button>
+                    <div id = "font_color_pickers" class = "hidden">
+                        FG <canvas id = "font_fg_swatch" width = "16" height = "16"></canvas>
+                        BG <canvas id = "font_bg_swatch" width = "16" height = "16"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TDF Font Picker Dialog -->
+        <div id = "font_picker_dialog" class = "hidden">
+            <div id = "font_picker_inner">
+                <div id = "font_picker_header">
+                    <span>TDF Fonts</span>
+                    <button id = "font_browse_btn">Browse folder…</button>
+                    <div id = "font_picker_close">✕</div>
+                </div>
+                <div id = "font_picker_body">
+                    <div id = "font_picker_left">
+                        <input type = "text" id = "font_search" placeholder = "Search fonts…">
+                        <div id = "font_picker_list"></div>
+                    </div>
+                    <div id = "font_picker_right">
+                        <input type = "text" id = "font_preview_text" placeholder = "Moebius Rulez">
+                        <canvas id = "font_preview_canvas" width = "640" height = "200"></canvas>
+                    </div>
                 </div>
             </div>
         </div>

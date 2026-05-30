@@ -354,6 +354,19 @@ electron.ipcMain.on("show_controlcharacters", async (event, {id, method, destroy
     event.returnValue = true;
 });
 
+electron.ipcMain.on("get_pref", (event, {key}) => {
+    event.returnValue = prefs.get(key) || null;
+});
+
+electron.ipcMain.on("set_pref", (event, {key, value}) => {
+    prefs.set(key, value);
+});
+
+electron.ipcMain.on("open_dir_dialog", (event, {title}) => {
+    const result = electron.dialog.showOpenDialogSync({title, properties: ["openDirectory"]});
+    event.returnValue = (result && result[0]) || null;
+});
+
 if (darwin) {
     electron.app.on("will-finish-launching", (event) => {
         electron.app.on("open-file", (event, file) => {

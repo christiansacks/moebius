@@ -375,6 +375,7 @@ class Tools extends events.EventEmitter {
             case this.modes.FILL: return $("fill_mode");
             case this.modes.SAMPLE: return $("sample_mode");
             case this.modes.MOVE_REFERENCE: return $("move_reference_mode");
+            case this.modes.FONT: return $("font_mode");
         }
     }
 
@@ -427,7 +428,7 @@ class Tools extends events.EventEmitter {
 
     constructor() {
         super();
-        this.modes = {SELECT: 0, BRUSH: 1, SHIFTER: 2, LINE: 3, RECTANGLE_OUTLINE: 4, RECTANGLE_FILLED: 5, ELLIPSE_OUTLINE: 6, ELLIPSE_FILLED: 7, FILL: 8, SAMPLE: 9, MOVE_REFERENCE: 10};
+        this.modes = {SELECT: 0, BRUSH: 1, SHIFTER: 2, LINE: 3, RECTANGLE_OUTLINE: 4, RECTANGLE_FILLED: 5, ELLIPSE_OUTLINE: 6, ELLIPSE_FILLED: 7, FILL: 8, SAMPLE: 9, MOVE_REFERENCE: 10, FONT: 11};
         tools_instance = this;
         on("change_to_select_mode", (event) => this.start(this.modes.SELECT));
         on("change_to_brush_mode", (event) => this.start(this.modes.BRUSH));
@@ -467,6 +468,7 @@ class Tools extends events.EventEmitter {
             $("fill_mode").addEventListener("mousedown", (event) => this.start(this.modes.FILL), true);
             $("sample_mode").addEventListener("mousedown", (event) => this.start(this.modes.SAMPLE), true);
             $("move_reference_mode").addEventListener("mousedown", (event) => this.start(this.modes.MOVE_REFERENCE), true);
+            $("font_mode").addEventListener("mousedown", (event) => this.start(this.modes.FONT), true);
             const ref = $("reference_image");
             ref.addEventListener("mousedown", (event) => {
                 if (this.mode !== this.modes.MOVE_REFERENCE) return;
@@ -594,6 +596,13 @@ class Toolbar extends events.EventEmitter {
         $("select_panel").classList.add("hidden");
         $("brush_panel").classList.add("hidden");
         $("sample_panel").classList.remove("hidden");
+    }
+
+    show_font() {
+        send("disable_brush_size_shortcuts");
+        $("select_panel").classList.add("hidden");
+        $("brush_panel").classList.add("hidden");
+        $("sample_panel").classList.add("hidden");
     }
 
     fkey_clicker(i) {

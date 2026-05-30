@@ -19,6 +19,8 @@ require("./document/tools/ellipse_filled");
 require("./document/tools/ellipse_outline");
 require("./document/tools/fill");
 require("./document/tools/sample");
+require("./document/tools/font");
+const font_panel = require("./document/ui/font_panel");
 
 doc.on("start_rendering", () => send_sync("show_rendering_modal"));
 doc.on("end_rendering", () => send("close_modal"));
@@ -42,6 +44,7 @@ doc.on("ready", () => {
     send("ready");
     tools.start(tools.modes.SELECT);
     layers_panel.init();
+    font_panel.init();
 });
 
 async function process_save(method = 'save', destroy_when_done = false, ignore_controlcharacters = false) {
