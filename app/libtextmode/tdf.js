@@ -63,31 +63,37 @@ function parse_tdf_file(file_path) {
     return fonts;
 }
 
-// Build a flat index of all fonts in a directory (name → {file, font_index}).
-// Does NOT load cell data — call get_font() for that.
-function build_font_index(dir) {
-    const index = [];
-    let files;
-    try { files = fs.readdirSync(dir); } catch (_) { return index; }
-    for (const f of files) {
-        if (path.extname(f).toLowerCase() !== ".tdf") continue;
-        const full = path.join(dir, f);
-        let buf;
-        try { buf = fs.readFileSync(full); } catch (_) { continue; }
-        if (buf.length < TDF_SIG.length) continue;
-        if (buf.slice(0, TDF_SIG.length).toString("ascii") !== TDF_SIG) continue;
-        // Scan for font names without parsing cell data
-        let off = 24;
-        let font_index = 0;
-        while (off < buf.length) {
-            if (buf[off] !== 0x0C) { off++; continue; }
-            const name = buf.slice(off + 1, off + 13).toString("ascii").replace(/\0/g, "").trim();
-            if (name) index.push({name, file: full, font_index});
-            font_index++;
-            off++;
-            while (off < buf.length && buf[off] !== 0x0C) off++;
-        }
+// Scan one buffer for font name entries (no cell data parsed).
+function scan_names_from_buf(buf, full_path) {
+    if (buf.length < TDF_SIG.length) return [];
+    if (buf.slice(0, TDF_SIG.length).toString("ascii") !== TDF_SIG) return [];
+    const entries = [];
+    let off = 24, font_index = 0;
+    while (off < buf.length) {
+        if (buf[off] !== 0x0C) { off++; continue; }
+        const name = buf.slice(off + 1, off + 13).toString("ascii").replace(/\0/g, "").trim();
+        if (name) entries.push({name, file: full_path, font_index});
+        font_index++;
+        off++;
+        while (off < buf.length && buf[off] !== 0x0C) off++;
     }
+    return entries;
+}
+
+// Build a flat index of all fonts in a directory (async, parallel reads).
+// Does NOT load cell data — call get_font() for that.
+async function build_font_index(dir) {
+    let files;
+    try { files = await fs.promises.readdir(dir); } catch (_) { return []; }
+    const tdf_files = files.filter(f => path.extname(f).toLowerCase() === ".tdf");
+    const results = await Promise.all(tdf_files.map(async (f) => {
+        const full = path.join(dir, f);
+        try {
+            const buf = await fs.promises.readFile(full);
+            return scan_names_from_buf(buf, full);
+        } catch (_) { return []; }
+    }));
+    const index = results.flat();
     index.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     return index;
 }
