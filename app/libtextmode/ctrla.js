@@ -160,11 +160,18 @@ function encode_as_ctrla(doc, save_without_sauce) {
         for (let x = 0; x <= end_col; x++) {
             const block = doc.data[y * doc.columns + x] || {code: 32, fg: 7, bg: 0};
             emit_attr(block.fg || 7, block.bg || 0);
-            if (block.code === 1) wca(0x41); // A - escaped literal 0x01
-            else w(block.code);
+            let code = block.code;
+            switch (code) {
+                case 10: code = 9; break;
+                case 13: code = 14; break;
+                case 26: code = 16; break;
+                case 27: code = 17; break;
+            }
+            if (code === 1) wca(0x41);
+            else w(code);
         }
 
-        if (y < end_row) { w(13); w(10); }
+        if (y < end_row && end_col < doc.columns - 1) { w(13); w(10); }
     }
 
     wca(0x5A); // Z end-of-file marker
