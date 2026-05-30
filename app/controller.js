@@ -73,7 +73,8 @@ function is_zip_extract(file) {
 }
 
 function save(destroy_when_done = false, save_without_sauce = false) {
-    if (!doc.file || is_zip_extract(doc.file)) {
+    const read_only_ext = new Set([".icy"]);
+    if (!doc.file || is_zip_extract(doc.file) || read_only_ext.has(path.extname(doc.file).toLowerCase())) {
         save_as(destroy_when_done);
     } else if (doc.is_layered && !doc.file.endsWith(".mob")) {
         const choice = msg_box(
