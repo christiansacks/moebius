@@ -86,13 +86,28 @@ body.dark .tool.selected {
     background-size: 24px 24px;
 }
 
-/* ── Font panel (toolbar area) ──────────────────────────────────────────── */
+/* ── Font panel (right side column, same column as layers) ───────────────── */
 #font_panel {
-    padding: 6px;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    min-width: 140px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    background: var(--panel-bg, #23252e);
+}
+#font_panel_header {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #ccc;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+#font_panel_inner {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
 }
 #font_current_name {
     font-size: 11px;
@@ -100,19 +115,19 @@ body.dark .tool.selected {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 180px;
 }
 #font_change_btn {
     font-size: 11px;
-    padding: 3px 8px;
+    padding: 4px 10px;
     cursor: pointer;
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.2);
     color: #ccc;
     border-radius: 3px;
+    text-align: center;
 }
 #font_change_btn:hover { background: rgba(255,255,255,0.18); }
-#font_color_pickers { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #aaa; }
+#font_color_pickers { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa; }
 
 /* ── Font picker dialog ─────────────────────────────────────────────────── */
 #font_picker_dialog {
@@ -563,6 +578,13 @@ body.dark #preview {
 }
 body.dark #layers_panel {
     background-color: var(--dark-mid-color);
+    border-color: var(--dark-border-color);
+}
+body.dark #font_panel {
+    background-color: var(--dark-mid-color);
+    border-color: var(--dark-border-color);
+}
+body.dark #font_panel_header {
     border-color: var(--dark-border-color);
 }
 body.dark #layers_header {

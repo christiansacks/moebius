@@ -62,6 +62,19 @@
                 </div>
                 <div id = "layers_list"></div>
             </div>
+            <div id = "font_panel" class = "hidden">
+                <div id = "font_panel_header">
+                    <span>TDF Fonts</span>
+                </div>
+                <div id = "font_panel_inner">
+                    <div id = "font_current_name">No font selected</div>
+                    <button id = "font_change_btn">Choose Font…</button>
+                    <div id = "font_color_pickers" class = "hidden">
+                        FG <canvas id = "font_fg_swatch" width = "16" height = "16"></canvas>
+                        BG <canvas id = "font_bg_swatch" width = "16" height = "16"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
         <div id = "toolbar">
             <div class = "panel hidden" id = "select_panel">
@@ -108,16 +121,6 @@
                     <canvas id = "sample_fg" width = "32" height = "32"></canvas>
                     Background: <div id = "bg_value"></div>
                     <canvas id = "sample_bg" width = "32" height = "32"></canvas>
-                </div>
-            </div>
-            <div class = "panel hidden" id = "font_panel">
-                <div id = "font_panel_inner">
-                    <div id = "font_current_name">No font selected</div>
-                    <button id = "font_change_btn">Choose Font…</button>
-                    <div id = "font_color_pickers" class = "hidden">
-                        FG <canvas id = "font_fg_swatch" width = "16" height = "16"></canvas>
-                        BG <canvas id = "font_bg_swatch" width = "16" height = "16"></canvas>
-                    </div>
                 </div>
             </div>
         </div>
