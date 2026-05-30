@@ -367,6 +367,11 @@ electron.ipcMain.on("open_dir_dialog", (event, {title}) => {
     event.returnValue = (result && result[0]) || null;
 });
 
+electron.ipcMain.handle("build_font_index", async (event, {dir}) => {
+    const {build_font_index} = require("./libtextmode/tdf");
+    return build_font_index(dir);
+});
+
 if (darwin) {
     electron.app.on("will-finish-launching", (event) => {
         electron.app.on("open-file", (event, file) => {

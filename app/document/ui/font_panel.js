@@ -1,6 +1,7 @@
 const path = require("path");
+const electron = require("electron");
 const {send_sync, send} = require("../../senders");
-const {build_font_index, get_font} = require("../../libtextmode/tdf");
+const {get_font} = require("../../libtextmode/tdf");
 const {font_tool, set_font, set_colors, is_color_font} = require("../tools/font");
 const libtextmode = require("../../libtextmode/libtextmode");
 const {ega} = require("../../libtextmode/palette");
@@ -9,17 +10,39 @@ const palette = require("../palette");
 // TDF directory comes from prefs; user can change it via Browse button
 let tdf_dir = send_sync("get_pref", {key: "tdf_dir"}) || "";
 
-// Lazily built index; invalidated when tdf_dir changes
+// Index is built async in the main process to avoid blocking the renderer
 let font_index = null;
+let index_loading = false;
 let current_entry = null;
 let current_font = null;
 let preview_gen = 0; // cancels stale renders
 
 function $(id) { return document.getElementById(id); }
 
-function get_index() {
-    if (!font_index && tdf_dir) font_index = build_font_index(tdf_dir);
-    return font_index || [];
+async function ensure_index() {
+    if (font_index) return font_index;
+    if (!tdf_dir || index_loading) return [];
+    index_loading = true;
+    show_list_loading();
+    try {
+        font_index = await electron.ipcRenderer.invoke("build_font_index", {dir: tdf_dir});
+    } catch (_) {
+        font_index = [];
+    }
+    index_loading = false;
+    return font_index;
+}
+
+function show_list_loading() {
+    const list = $("font_picker_list");
+    if (!list) return;
+    list.innerHTML = "";
+    const el = document.createElement("div");
+    el.className = "font_list_item";
+    el.style.color = "#666";
+    el.style.fontStyle = "italic";
+    el.textContent = "Loading fonts…";
+    list.appendChild(el);
 }
 
 // ── Preview doc builder ───────────────────────────────────────────────────────
@@ -142,21 +165,35 @@ async function render_picker_preview() {
 
 // ── Font list ─────────────────────────────────────────────────────────────────
 
-function render_font_list(filter) {
+async function render_font_list(filter) {
     const list = $("font_picker_list");
     if (!list) return;
-    list.innerHTML = "";
-    const idx = get_index();
-    if (!tdf_dir || idx.length === 0) {
+
+    if (!tdf_dir) {
+        list.innerHTML = "";
         const msg = document.createElement("div");
         msg.className = "font_list_item";
         msg.style.color = "#666";
         msg.style.fontStyle = "italic";
-        msg.textContent = tdf_dir ? "No .TDF files found" : 'Click "Browse folder…" to locate your TDF fonts';
+        msg.textContent = 'Click "Browse folder…" to locate your TDF fonts';
         list.appendChild(msg);
         return;
     }
-    const lc = filter.toLowerCase();
+
+    const idx = await ensure_index();
+
+    list.innerHTML = "";
+    if (idx.length === 0) {
+        const msg = document.createElement("div");
+        msg.className = "font_list_item";
+        msg.style.color = "#666";
+        msg.style.fontStyle = "italic";
+        msg.textContent = "No .TDF files found in that folder";
+        list.appendChild(msg);
+        return;
+    }
+
+    const lc = (filter || "").toLowerCase();
     const matches = lc ? idx.filter(e => e.name.toLowerCase().includes(lc)) : idx;
     for (const entry of matches) {
         const el = document.createElement("div");
@@ -193,11 +230,11 @@ function update_color_pickers_visibility() {
 
 // ── Dialog show/hide ──────────────────────────────────────────────────────────
 
-function show_font_picker() {
+async function show_font_picker() {
     const dialog = $("font_picker_dialog");
     if (!dialog) return;
     dialog.classList.remove("hidden");
-    render_font_list($("font_search").value || "");
+    await render_font_list($("font_search").value || "");
     render_picker_preview();
 }
 
@@ -219,13 +256,14 @@ function init() {
     if (close_btn) close_btn.addEventListener("click", hide_font_picker);
 
     const browse_btn = $("font_browse_btn");
-    if (browse_btn) browse_btn.addEventListener("click", () => {
+    if (browse_btn) browse_btn.addEventListener("click", async () => {
         const result = send_sync("open_dir_dialog", {title: "Select TDF Fonts Folder"});
         if (result) {
             tdf_dir = result;
             font_index = null;
+            index_loading = false;
             send("set_pref", {key: "tdf_dir", value: tdf_dir});
-            render_font_list($("font_search").value || "");
+            await render_font_list($("font_search").value || "");
         }
     });
 
