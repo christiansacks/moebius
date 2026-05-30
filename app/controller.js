@@ -98,8 +98,19 @@ function save(destroy_when_done = false, save_without_sauce = false) {
 }
 
 function save_as(destroy_when_done = false) {
-    const default_ext = doc.is_layered ? "mob" : "ans";
-    const file = save_box(doc.file, default_ext, {filters: [{name: "Moebius Layered", extensions: ["mob"]}, {name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]}, {name: "Synchronet MSG", extensions: ["msg"]}, {name: "XBin", extensions: ["xb"]}, {name: "Binary Text", extensions: ["bin"]}]});
+    const read_only_ext = new Set([".icy"]);
+    const src_ext = doc.file ? path.extname(doc.file).toLowerCase() : "";
+    const use_mob = doc.is_layered || read_only_ext.has(src_ext);
+    const default_ext = use_mob ? "mob" : "ans";
+    const mob_filter = {name: "Moebius Layered", extensions: ["mob"]};
+    const ans_filter = {name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]};
+    const filters = [
+        ...(use_mob ? [mob_filter, ans_filter] : [ans_filter, mob_filter]),
+        {name: "Synchronet MSG", extensions: ["msg"]},
+        {name: "XBin", extensions: ["xb"]},
+        {name: "Binary Text", extensions: ["bin"]},
+    ];
+    const file = save_box(doc.file, default_ext, {filters});
     if (file) {
         doc.file = file;
         doc.edited = false;
