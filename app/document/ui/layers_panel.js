@@ -5,6 +5,85 @@ function $(id) { return document.getElementById(id); }
 
 let ctx_target_idx = -1;
 
+function get_drop_gap(mouse_y, items) {
+    for (let i = 0; i < items.length; i++) {
+        const rect = items[i].getBoundingClientRect();
+        if (mouse_y < rect.top + rect.height / 2) return i;
+    }
+    return items.length;
+}
+
+function start_layer_drag(e, idx) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const list = $("layers_list");
+    const items = [...list.querySelectorAll(".layer_item")];
+    const dragged_el = items.find(el => parseInt(el.dataset.index) === idx);
+    if (!dragged_el) return;
+    const drag_rect = dragged_el.getBoundingClientRect();
+    const start_y = e.clientY;
+    let engaged = false;
+    let ghost = null, indicator = null, drop_gap = null;
+
+    const engage = () => {
+        engaged = true;
+        dragged_el.classList.add("layer_dragging");
+        document.body.style.userSelect = "none";
+
+        ghost = document.createElement("div");
+        ghost.className = "layer_item layer_drag_ghost";
+        ghost.style.width = drag_rect.width + "px";
+        ghost.style.left = drag_rect.left + "px";
+        ghost.style.top = drag_rect.top + "px";
+        ghost.innerHTML = dragged_el.innerHTML;
+        document.body.appendChild(ghost);
+
+        indicator = document.createElement("div");
+        indicator.className = "layer_drop_indicator";
+        document.body.appendChild(indicator);
+    };
+
+    const on_move = (e) => {
+        if (!engaged && Math.abs(e.clientY - start_y) > 4) engage();
+        if (!engaged) return;
+        ghost.style.top = (e.clientY - (start_y - drag_rect.top)) + "px";
+        const cur_items = [...list.querySelectorAll(".layer_item")];
+        drop_gap = get_drop_gap(e.clientY, cur_items);
+        const list_rect = list.getBoundingClientRect();
+        let iy;
+        if (drop_gap === 0) {
+            iy = cur_items[0].getBoundingClientRect().top;
+        } else if (drop_gap >= cur_items.length) {
+            iy = cur_items[cur_items.length - 1].getBoundingClientRect().bottom;
+        } else {
+            const a = cur_items[drop_gap - 1].getBoundingClientRect();
+            const b = cur_items[drop_gap].getBoundingClientRect();
+            iy = (a.bottom + b.top) / 2;
+        }
+        indicator.style.top = iy + "px";
+        indicator.style.left = list_rect.left + "px";
+        indicator.style.width = list_rect.width + "px";
+    };
+
+    const on_up = () => {
+        document.removeEventListener("mousemove", on_move);
+        document.removeEventListener("mouseup", on_up);
+        if (!engaged) return;
+        dragged_el.classList.remove("layer_dragging");
+        ghost.remove();
+        indicator.remove();
+        document.body.style.userSelect = "";
+        if (drop_gap !== null) {
+            const n = doc.layers.length;
+            const to = Math.max(0, Math.min(n - 1, n - 1 - drop_gap));
+            if (idx !== to) doc.move_layer_to(idx, to);
+        }
+    };
+
+    document.addEventListener("mousemove", on_move);
+    document.addEventListener("mouseup", on_up);
+}
+
 function show_context_menu(idx, x, y) {
     ctx_target_idx = idx;
     const layer = doc.layers[idx];
@@ -88,6 +167,7 @@ function render_list() {
         item.appendChild(vis);
         item.appendChild(lock);
         item.appendChild(name);
+        item.addEventListener("mousedown", (e) => start_layer_drag(e, i));
         item.addEventListener("click", () => { if (doc.active_layer !== i) doc.active_layer = i; item.focus(); });
         item.addEventListener("keydown", (e) => {
             if (e.key === "F2") { e.preventDefault(); start_rename(i, name); }

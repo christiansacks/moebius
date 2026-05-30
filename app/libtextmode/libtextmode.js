@@ -7,6 +7,7 @@ const {CtrlA, encode_as_ctrla} = require("./ctrla");
 const {ega, c64, convert_ega_to_style, has_ansi_palette, has_c64_palette} = require("./palette");
 const {BLEND_MODES, composite_block} = require("./blend");
 const {read_mob, encode_as_mob} = require("./mob");
+const {read_icy} = require("./icy");
 const path = require("path");
 const {current_date, resize_canvas} = require("./textmode");
 const {cp437_to_unicode, cp437_to_unicode_bytes, unicode_to_cp437} = require("./encodings");
@@ -17,6 +18,7 @@ function read_bytes(bytes, file) {
     let result;
     switch (path.extname(file).toLowerCase()) {
         case ".mob": return read_mob(bytes);
+        case ".icy": return read_icy(bytes);
         case ".bin": result = new BinaryText(bytes); break;
         case ".xb": result = new XBin(bytes); break;
         case ".msg": result = new CtrlA(bytes); break;

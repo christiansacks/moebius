@@ -1007,7 +1007,26 @@ class TextModeDoc extends events.EventEmitter {
         } else {
             this.undo_history.reset_undos();
         }
-        libtextmode.resize_canvas(doc, columns, rows);
+        if (doc.layers && doc.layers.length > 1) {
+            const old_columns = doc.columns;
+            const old_rows = doc.rows;
+            const min_rows = Math.min(old_rows, rows);
+            const min_cols = Math.min(old_columns, columns);
+            for (const layer of doc.layers) {
+                const new_data = new Array(columns * rows).fill(null);
+                for (let y = 0; y < min_rows; y++) {
+                    for (let x = 0; x < min_cols; x++) {
+                        new_data[y * columns + x] = layer.data[y * old_columns + x];
+                    }
+                }
+                layer.data = new_data;
+            }
+            doc.columns = columns;
+            doc.rows = rows;
+            doc.data = libtextmode.composite_layers(doc.layers, columns, rows, doc.extended_colors);
+        } else {
+            libtextmode.resize_canvas(doc, columns, rows);
+        }
         document.getElementById("drawing_grid").classList.add("hidden");
         send("uncheck_all_guides");
         this.start_rendering();
@@ -1290,6 +1309,22 @@ class TextModeDoc extends events.EventEmitter {
         [doc.layers[idx - 1], doc.layers[idx]] = [doc.layers[idx], doc.layers[idx - 1]];
         if (active_layer === idx) active_layer = idx - 1;
         else if (active_layer === idx - 1) active_layer = idx;
+        this._recomposite_all();
+        this.start_rendering();
+        this.emit("layers_changed");
+    }
+
+    move_layer_to(from, to) {
+        if (!doc.layers || from === to || from < 0 || to < 0 || from >= doc.layers.length || to >= doc.layers.length) return;
+        doc.layers.splice(to, 0, doc.layers.splice(from, 1)[0]);
+        if (active_layer === from) {
+            active_layer = to;
+        } else if (from < to && active_layer > from && active_layer <= to) {
+            active_layer--;
+        } else if (from > to && active_layer >= to && active_layer < from) {
+            active_layer++;
+        }
+        this.undo_history.reset_undos();
         this._recomposite_all();
         this.start_rendering();
         this.emit("layers_changed");

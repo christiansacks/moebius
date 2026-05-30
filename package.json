@@ -29,6 +29,7 @@
     "discord-rpc": "4.0",
     "discord.js": "14.26",
     "fflate": "^0.8.3",
+    "fzstd": "^0.1.1",
     "jquery": "3.7",
     "json5": "2.2",
     "linkify-plugin-ticket": "4.3",
