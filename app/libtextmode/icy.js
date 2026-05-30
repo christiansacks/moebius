@@ -99,7 +99,7 @@ function parse_v1_layer(data) {
             const is_space = (cp === 0x20 || cp === 0);
             if (!fg_res.color && !bg_res.color && is_space) { cell_data.push(null); continue; }
 
-            const code = unicode_to_cp437(String.fromCodePoint(cp)) ?? 0x20;
+            const code = cp <= 0xFF ? cp : (unicode_to_cp437(String.fromCodePoint(cp)) ?? 0x20);
             const cell = {code, fg: 7, bg: 0};
             apply_fg(cell, fg_res.color);
             apply_bg(cell, bg_res.color);
@@ -181,7 +181,7 @@ function v0_decode_cells(data, o, width, height, start_y, existing) {
                 const ch_u32  = data[o];
                 const fg_raw  = data[o + 1];
                 const bg_raw  = data[o + 2];
-                const code = unicode_to_cp437(String.fromCodePoint(ch_u32)) ?? ch_u32;
+                const code = ch_u32 <= 0xFF ? ch_u32 : (unicode_to_cp437(String.fromCodePoint(ch_u32)) ?? ch_u32);
                 const cell = {code, fg: fg_raw & 0x0f, bg: bg_raw & 0x0f};
                 if (x < width && y < height) cells[y * width + x] = cell;
                 o += 4;
@@ -195,7 +195,7 @@ function v0_decode_cells(data, o, width, height, start_y, existing) {
                 o += 14;
                 const fg_color = v0_decode_legacy_color(fg_raw, ext_attr, true);
                 const bg_color = v0_decode_legacy_color(bg_raw, ext_attr, false);
-                const code = unicode_to_cp437(String.fromCodePoint(ch_u32)) ?? 0x20;
+                const code = ch_u32 <= 0xFF ? ch_u32 : (unicode_to_cp437(String.fromCodePoint(ch_u32)) ?? 0x20);
                 const cell = {code, fg: 7, bg: 0};
                 apply_fg(cell, fg_color);
                 apply_bg(cell, bg_color);

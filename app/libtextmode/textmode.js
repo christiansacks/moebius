@@ -231,6 +231,7 @@ function resize_canvas(doc, columns, rows) {
     doc.data = new_data;
     doc.columns = columns;
     doc.rows = rows;
+    if (doc.layers && doc.layers.length === 1) doc.layers[0].data = doc.data;
 }
 
 module.exports = {bytes_to_blocks, bytes_to_utf8, current_date, Textmode, add_sauce_for_ans, add_sauce_for_bin, add_sauce_for_xbin, resize_canvas};

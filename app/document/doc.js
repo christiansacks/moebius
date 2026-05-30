@@ -1007,7 +1007,26 @@ class TextModeDoc extends events.EventEmitter {
         } else {
             this.undo_history.reset_undos();
         }
-        libtextmode.resize_canvas(doc, columns, rows);
+        if (doc.layers && doc.layers.length > 1) {
+            const old_columns = doc.columns;
+            const old_rows = doc.rows;
+            const min_rows = Math.min(old_rows, rows);
+            const min_cols = Math.min(old_columns, columns);
+            for (const layer of doc.layers) {
+                const new_data = new Array(columns * rows).fill(null);
+                for (let y = 0; y < min_rows; y++) {
+                    for (let x = 0; x < min_cols; x++) {
+                        new_data[y * columns + x] = layer.data[y * old_columns + x];
+                    }
+                }
+                layer.data = new_data;
+            }
+            doc.columns = columns;
+            doc.rows = rows;
+            doc.data = libtextmode.composite_layers(doc.layers, columns, rows, doc.extended_colors);
+        } else {
+            libtextmode.resize_canvas(doc, columns, rows);
+        }
         document.getElementById("drawing_grid").classList.add("hidden");
         send("uncheck_all_guides");
         this.start_rendering();
