@@ -6,7 +6,7 @@ const libtextmode = require("../libtextmode/libtextmode");
 const {unzipSync} = require("fflate");
 
 const SUPPORTED_EXT = new Set([".ans", ".xb", ".bin", ".diz", ".asc", ".txt", ".nfo", ".msg", ".mob", ".icy"]);
-const MAX_PREVIEW_BYTES = 100 * 1024;
+const MAX_PREVIEW_BYTES = 512 * 1024;
 const NO_PREVIEW_EXT = new Set([".txt", ".nfo"]);
 const COLO_API = "https://api.sixteencolors.net/v0";
 
