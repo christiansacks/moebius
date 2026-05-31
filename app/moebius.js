@@ -418,7 +418,12 @@ if (!got_single_instance_lock) {
 }
 
 electron.app.on("ready", (event) => {
-    const files = argv._.filter((file, index) => index > 0 && fs.existsSync(file) && fs.statSync(file).isFile());
+    const files = process.argv.slice(1).reduce((acc, arg) => {
+        if (arg.startsWith("-")) return acc;
+        const resolved = path.isAbsolute(arg) ? arg : path.join(process.cwd(), arg);
+        try { if (fs.statSync(resolved).isFile()) acc.push(resolved); } catch (_) {}
+        return acc;
+    }, []);
     if (files.length > 0) {
         files.forEach((file) => open_file(file));
     } else {
