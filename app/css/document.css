@@ -752,6 +752,34 @@ body.dark #animation_panel.bottom-docked {
     font-size: 13px;
     padding: 1px 5px;
 }
+#anim_fps, #anim_delay_ms, #anim_reveal, #anim_speed {
+    background: rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.2);
+    color: inherit;
+    padding: 2px 3px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+body.dark #anim_fps, body.dark #anim_delay_ms,
+body.dark #anim_reveal, body.dark #anim_speed {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #ccc;
+}
+#anim_fps, #anim_delay_ms { width: 44px; }
+#anim_stream_play { color: #88aaee; }
+#anim_stream_play.playing { color: #ffcc44; }
+#anim_stream_bar {
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    flex-shrink: 0;
+}
+#anim_stream_progress {
+    height: 100%;
+    width: 0%;
+    background: #6699dd;
+    transition: width 0.1s linear;
+}
 #anim_controls {
     display: flex;
     align-items: center;
@@ -785,20 +813,6 @@ body.dark .anim_btn {
 .anim_btn:hover { background: rgba(255,255,255,0.15); }
 .anim_btn.playing { color: #ffcc44; }
 .anim_btn:disabled { opacity: 0.4; cursor: default; }
-#anim_fps, #anim_delay_ms {
-    width: 44px;
-    background: rgba(0,0,0,0.1);
-    border: 1px solid rgba(0,0,0,0.2);
-    color: inherit;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-size: 11px;
-}
-body.dark #anim_fps, body.dark #anim_delay_ms {
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: #ccc;
-}
 #anim_frame_info {
     margin: 0 3px;
     white-space: nowrap;

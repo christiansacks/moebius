@@ -8,6 +8,12 @@ let active_layer = 0;
 let _current_frame = 0;
 let _is_playing = false;
 let _playback_timer = null;
+let _stream_playing = false;
+let _stream_timer = null;
+let _stream_bytes = null;
+let _stream_pos = 0;
+let _stream_parser = null;
+let _stream_bytes_per_tick = 200;
 const actions =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, PASTE_AS_SELECTION: 17, ROTATE: 18, FLIP_X: 19, FLIP_Y: 20, SET_BG: 21};
 const statuses = {ACTIVE: 0, IDLE: 1, AWAY: 2, WEB: 3};
 const modes = {EDITING: 0, SELECTION: 1, OPERATION: 2};
@@ -703,6 +709,7 @@ class TextModeDoc extends events.EventEmitter {
 
     async new_document({columns, rows, title, author, group, date, palette, font_name, use_9px_font, ice_colors, extended_colors, comments, data}) {
         this.stop_playback();
+        this.stop_stream_playback();
         doc = libtextmode.new_document({columns, rows, title, author, group, date, palette, font_name, use_9px_font, ice_colors, extended_colors, comments, data});
         doc.animation = null;
         active_layer = 0;
@@ -1507,8 +1514,58 @@ class TextModeDoc extends events.EventEmitter {
         this.emit("playback_stopped");
     }
 
+    start_stream_playback() {
+        if (!doc || !doc.animation || _stream_playing) return;
+        // Use original bytes if imported from .ans, otherwise synthesise from frames
+        _stream_bytes = doc.animation.raw_stream || libtextmode.generate_animation_stream(this);
+        if (!_stream_bytes || !_stream_bytes.length) return;
+        _stream_playing = true;
+        _stream_pos = 0;
+        _stream_parser = new libtextmode.IncrementalAnsiParser(doc.columns);
+        this.emit("stream_playback_started");
+        _stream_timer = setInterval(() => {
+            if (_stream_pos >= _stream_bytes.length) {
+                this.stop_stream_playback();
+                return;
+            }
+            const end = Math.min(_stream_pos + _stream_bytes_per_tick, _stream_bytes.length);
+            _stream_parser.feed(_stream_bytes.slice(_stream_pos, end));
+            _stream_pos = end;
+            const new_data = _stream_parser.get_data();
+            for (let i = 0; i < new_data.length && i < doc.rows * doc.columns; i++) {
+                const cell = new_data[i];
+                const old_cell = doc.data[i];
+                if (!old_cell || cell.code !== old_cell.code || cell.fg !== old_cell.fg || cell.bg !== old_cell.bg) {
+                    const x = i % doc.columns;
+                    const y = Math.floor(i / doc.columns);
+                    libtextmode.render_at(render, x, y, cell, doc.c64_background);
+                    doc.data[i] = cell;
+                }
+            }
+            const progress = _stream_pos / _stream_bytes.length;
+            this.emit("stream_progress", progress);
+        }, 16);
+    }
+
+    stop_stream_playback() {
+        if (!_stream_playing) return;
+        _stream_playing = false;
+        if (_stream_timer) {clearInterval(_stream_timer); _stream_timer = null;}
+        _stream_bytes = null;
+        _stream_parser = null;
+        this.emit("stream_playback_stopped");
+    }
+
+    set stream_speed(bytes_per_tick) {
+        _stream_bytes_per_tick = Math.max(50, Math.min(5000, bytes_per_tick));
+    }
+
+    get stream_speed() { return _stream_bytes_per_tick; }
+    get stream_playing() { return _stream_playing; }
+
     async open(file) {
         this.stop_playback();
+        this.stop_stream_playback();
         const parsed = await libtextmode.read_file(file);
         doc = libtextmode.new_document(parsed);
         doc.animation = parsed.animation || null;
