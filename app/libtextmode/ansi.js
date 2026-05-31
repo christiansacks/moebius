@@ -818,4 +818,49 @@ function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
     return bytes;
 }
 
-module.exports = {Ansi, encode_as_ansi, ansi_to_bin_color};
+function split_on_separator(data, sep) {
+    const chunks = [];
+    let start = 0;
+    const end = data.length - sep.length;
+    for (let i = 0; i <= end; i++) {
+        let match = true;
+        for (let j = 0; j < sep.length; j++) {
+            if (data[i + j] !== sep[j]) { match = false; break; }
+        }
+        if (match) {
+            chunks.push(data.slice(start, i));
+            start = i + sep.length;
+            i += sep.length - 1;
+        }
+    }
+    chunks.push(data.slice(start));
+    return chunks;
+}
+
+// Detects ANSImation frames separated by ESC[2J (OG BBS format).
+// Returns array of parsed Ansi objects (one per frame), or null if not an animation.
+function detect_animation_chunks(bytes) {
+    const textmode = new Textmode(bytes);
+    const content = textmode.bytes; // already SAUCE-stripped
+
+    const SEP_2J = [0x1b, 0x5b, 0x32, 0x4a]; // ESC[2J
+    const chunks = split_on_separator(content, SEP_2J);
+    const real_chunks = chunks.filter(c => c.length >= 50);
+
+    if (real_chunks.length > 1) {
+        return {
+            frames: real_chunks.map(c => new Ansi(Buffer.from(c))),
+            title: textmode.title || "",
+            author: textmode.author || "",
+            group: textmode.group || "",
+            date: textmode.date || "",
+            comments: textmode.comments || "",
+            font_name: textmode.font_name || "IBM VGA",
+            ice_colors: textmode.ice_colors || false,
+            use_9px_font: textmode.use_9px_font || false,
+        };
+    }
+    return null;
+}
+
+module.exports = {Ansi, encode_as_ansi, ansi_to_bin_color, detect_animation_chunks};

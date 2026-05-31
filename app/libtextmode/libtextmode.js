@@ -1,6 +1,6 @@
 const {Font} = require("./font");
 const {create_canvas, join_canvases} = require("./canvas");
-const {Ansi, encode_as_ansi, ansi_to_bin_color} = require("./ansi");
+const {Ansi, encode_as_ansi, ansi_to_bin_color, detect_animation_chunks} = require("./ansi");
 const {BinaryText, encode_as_bin} = require("./binary_text");
 const {XBin, encode_as_xbin} = require("./xbin");
 const {CtrlA, encode_as_ctrla} = require("./ctrla");
@@ -23,8 +23,45 @@ function read_bytes(bytes, file) {
         case ".xb": result = new XBin(bytes); break;
         case ".msg": result = new CtrlA(bytes); break;
         case ".ans":
-        default:
-        result = new Ansi(bytes);
+        default: {
+            const anim = detect_animation_chunks(bytes);
+            if (anim && anim.frames.length > 1) {
+                const columns = anim.frames[0].columns || 80;
+                const rows = Math.max(...anim.frames.map(f => f.rows || 25));
+                const blank = {fg: 7, bg: 0, code: 32};
+                // Build layers array per frame, padding shorter frames to rows height.
+                // frame_layers[0] is shared as both top-level layers and animation.frames[0].layers
+                // so doc.layers === doc.animation.frames[0].layers after new_document().
+                const frame_layers = anim.frames.map(f => {
+                    const bg = make_layer("Background", columns, rows);
+                    const copy_count = Math.min(f.data.length, bg.data.length);
+                    for (let i = 0; i < copy_count; i++) bg.data[i] = f.data[i];
+                    for (let i = copy_count; i < bg.data.length; i++) bg.data[i] = blank;
+                    return [bg];
+                });
+                result = {
+                    columns,
+                    rows,
+                    title: anim.title,
+                    author: anim.author,
+                    group: anim.group,
+                    date: anim.date,
+                    comments: anim.comments,
+                    font_name: anim.font_name,
+                    ice_colors: anim.ice_colors,
+                    use_9px_font: anim.use_9px_font,
+                    extended_colors: anim.frames[0].extended_colors || false,
+                    palette: anim.frames[0].palette,
+                    layers: frame_layers[0],
+                    animation: {
+                        fps: 8,
+                        frames: frame_layers.map(layers => ({delay_ms: 0, layers})),
+                    },
+                };
+            } else {
+                result = new Ansi(bytes);
+            }
+        }
     }
     if (result.extended_colors === undefined && result.data) {
         result.extended_colors = result.data.some(b => b.fg_rgb || b.bg_rgb || b.fg_idx !== undefined || b.bg_idx !== undefined);
