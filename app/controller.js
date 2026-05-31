@@ -9,6 +9,7 @@ const {remove_ice_colors} = require("./libtextmode/libtextmode");
 let hourly_saver, backup_folder;
 require("./document/ui/canvas");
 const layers_panel = require("./document/ui/layers_panel");
+const animation_panel = require("./document/ui/animation_panel");
 require("./document/tools/select");
 require("./document/tools/brush");
 require("./document/tools/shifter");
@@ -45,7 +46,23 @@ doc.on("ready", () => {
     tools.start(tools.modes.SELECT);
     layers_panel.init();
     font_panel.init();
+    animation_panel.init();
 });
+
+doc.on("new_document", () => {
+    animation_panel.show(doc.animation_mode);
+    if (doc.animation_mode) animation_panel.update();
+    send("update_animation_menu", {enabled: doc.animation_mode});
+});
+doc.on("animation_mode_changed", (enabled) => {
+    animation_panel.show(enabled);
+    if (enabled) animation_panel.update();
+    send("update_animation_menu", {enabled});
+});
+doc.on("animation_changed", () => animation_panel.update());
+doc.on("frame_changed", (idx) => animation_panel.update_frame(idx));
+doc.on("playback_started", () => animation_panel.set_playing(true));
+doc.on("playback_stopped", () => animation_panel.set_playing(false));
 
 async function process_save(method = 'save', destroy_when_done = false, ignore_controlcharacters = false) {
     var ctrl = false;
@@ -79,10 +96,11 @@ function save(destroy_when_done = false, save_without_sauce = false) {
     const read_only_ext = new Set([".icy"]);
     if (!doc.file || is_zip_extract(doc.file) || read_only_ext.has(path.extname(doc.file).toLowerCase())) {
         save_as(destroy_when_done);
-    } else if (doc.is_layered && !doc.file.endsWith(".mob")) {
+    } else if ((doc.is_layered || doc.animation_mode) && !doc.file.endsWith(".mob")) {
+        const reason = doc.animation_mode ? "animation frames" : "multiple layers";
         const choice = msg_box(
             "Layered document",
-            `"${path.basename(doc.file)}" has multiple layers.\n\nSave as .mob to preserve layers, or flatten and overwrite the original file?`,
+            `"${path.basename(doc.file)}" has ${reason}.\n\nSave as .mob to preserve this, or flatten and overwrite the original file?`,
             {buttons: ["Save as .mob…", "Flatten and overwrite", "Cancel"], defaultId: 0, cancelId: 2}
         );
         if (choice === 0) {
@@ -103,7 +121,7 @@ function save(destroy_when_done = false, save_without_sauce = false) {
 function save_as(destroy_when_done = false) {
     const read_only_ext = new Set([".icy"]);
     const src_ext = doc.file ? path.extname(doc.file).toLowerCase() : "";
-    const use_mob = doc.is_layered || read_only_ext.has(src_ext);
+    const use_mob = doc.is_layered || doc.animation_mode || read_only_ext.has(src_ext);
     const default_ext = use_mob ? "mob" : "ans";
     const mob_filter = {name: "Moebius Layered", extensions: ["mob"]};
     const ans_filter = {name: "ANSI Art", extensions: ["ans", "asc", "diz", "nfo", "txt"]};
@@ -159,6 +177,11 @@ function export_as_apng() {
     if (file) doc.export_as_apng(file);
 }
 
+function export_as_ansimation() {
+    const file = save_box(doc.file, "ans", {filters: [{name: "ANSImation", extensions: ["ans"]}]});
+    if (file) doc.export_as_ansimation(file);
+}
+
 function hourly_save() {
     if (doc.connection && !doc.connection.connected) return;
     const file = (doc.connection) ? `${doc.connection.server}.ans` : (doc.file ? doc.file : "Untitled.ans");
@@ -198,6 +221,7 @@ on("check_before_closing", (event) => check_before_closing());
 on("export_as_utf8", (event) => export_as_utf8());
 on("export_as_png", (event) => export_as_png());
 on("export_as_apng", (event) => export_as_apng());
+on("export_as_ansimation", (event) => export_as_ansimation());
 on("remove_ice_colors", (event) => send("new_document", remove_ice_colors(doc)));
 on("connect_to_server", (event, {server, pass}) => doc.connect_to_server(server, pass));
 on("backup_folder", (event, folder) => backup_folder = folder);
@@ -211,3 +235,7 @@ on("layer_move_up", () => doc.move_layer_up(doc.active_layer));
 on("layer_move_down", () => doc.move_layer_down(doc.active_layer));
 on("layer_merge_down", () => doc.merge_layer_down(doc.active_layer));
 on("layer_merge_all", () => { if (doc.layers && doc.layers.length > 1) doc.merge_all_layers(); });
+on("toggle_animation_mode", () => {
+    if (doc.animation_mode) doc.disable_animation_mode();
+    else doc.enable_animation_mode();
+});
