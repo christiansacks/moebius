@@ -6,6 +6,8 @@
     --chat-height: 0px;
     --layers-panel-height: 250px;
     --font-panel-height: 80px;
+    --anim-panel-height: 110px;
+    --anim-bottom-height: 0px;
 }
 #sidebar {
     float: left;
@@ -307,7 +309,7 @@ body.dark #current_colors > canvas {
 #viewport {
     float: left;
     width: calc(100% - var(--sidebar-width) -  var(--preview-width) - 1px);
-    height: calc(100% - var(--toolbar-height) - var(--statusbar-height) - var(--chat-height) - 1px);
+    height: calc(100% - var(--toolbar-height) - var(--statusbar-height) - var(--chat-height) - var(--anim-bottom-height) - 1px);
     border-top: 1px solid var(--border-color);
     border-left: 1px solid var(--border-color);
     background-color: var(--view-color);
@@ -711,6 +713,143 @@ body.dark .ctx_sep {
     width: inherit;
     height: inherit;
 }
+/* ── Animation panel (right-docked or bottom-docked) ─────────────────────── */
+#anim_resize_handle {
+    height: 6px;
+    cursor: ns-resize;
+    flex-shrink: 0;
+    background: transparent;
+}
+#anim_resize_handle:hover, #anim_resize_handle.active {
+    background: rgba(0,0,0,0.3);
+}
+#animation_panel {
+    flex: 0 0 var(--anim-panel-height);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--mid-color);
+    font-size: 11px;
+}
+body.dark #animation_panel {
+    background-color: var(--dark-mid-color);
+    border-top: 1px solid var(--dark-border-color);
+}
+/* Bottom-docked state: leave #preview flex context, sit below #viewport */
+#animation_panel.bottom-docked {
+    flex: none;
+    float: left;
+    width: calc(100% - var(--sidebar-width) - var(--preview-width) - 1px);
+    height: var(--anim-bottom-height);
+    border-top: 1px solid var(--border-color);
+}
+body.dark #animation_panel.bottom-docked {
+    border-top: 1px solid var(--dark-border-color);
+}
+.anim_dock_btn {
+    margin-left: auto;
+    font-size: 13px;
+    padding: 1px 5px;
+}
+#anim_controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 7px;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: #ccc;
+}
+body.dark #anim_controls {
+    border-bottom: 1px solid var(--dark-border-color);
+    color: #bbb;
+}
+.anim_btn {
+    background: rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.2);
+    color: inherit;
+    padding: 2px 7px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+}
+body.dark .anim_btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #ccc;
+}
+.anim_btn:hover { background: rgba(255,255,255,0.15); }
+.anim_btn.playing { color: #ffcc44; }
+.anim_btn:disabled { opacity: 0.4; cursor: default; }
+#anim_fps, #anim_delay_ms {
+    width: 44px;
+    background: rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.2);
+    color: inherit;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+body.dark #anim_fps, body.dark #anim_delay_ms {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #ccc;
+}
+#anim_frame_info {
+    margin: 0 3px;
+    white-space: nowrap;
+    font-size: 11px;
+}
+#anim_strip {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 6px;
+    min-height: 0;
+}
+.anim_frame_card {
+    flex: 0 0 48px;
+    height: 52px;
+    background: rgba(0,0,0,0.1);
+    border: 2px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+body.dark .anim_frame_card {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.15);
+}
+.anim_frame_card:hover { border-color: rgba(255,255,255,0.35); }
+.anim_frame_card.active {
+    border-color: #6699dd;
+    background: rgba(100,150,255,0.12);
+}
+.anim_frame_num {
+    font-size: 15px;
+    font-weight: bold;
+    color: #888;
+}
+body.dark .anim_frame_num { color: #aaa; }
+.anim_frame_card.active .anim_frame_num { color: #88aaee; }
+.anim_frame_delay {
+    font-size: 9px;
+    color: #999;
+    margin-top: 2px;
+}
+.anim_frame_card.active .anim_frame_delay { color: #6699dd; }
+
 .hidden {
     display: none !important;
 }

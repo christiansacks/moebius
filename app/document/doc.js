@@ -5,6 +5,9 @@ const chat = require("./ui/chat");
 const path = require("path");;
 let doc, render;
 let active_layer = 0;
+let _current_frame = 0;
+let _is_playing = false;
+let _playback_timer = null;
 const actions =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, PASTE_AS_SELECTION: 17, ROTATE: 18, FLIP_X: 19, FLIP_Y: 20, SET_BG: 21};
 const statuses = {ACTIVE: 0, IDLE: 1, AWAY: 2, WEB: 3};
 const modes = {EDITING: 0, SELECTION: 1, OPERATION: 2};
@@ -699,8 +702,11 @@ class TextModeDoc extends events.EventEmitter {
     }
 
     async new_document({columns, rows, title, author, group, date, palette, font_name, use_9px_font, ice_colors, extended_colors, comments, data}) {
+        this.stop_playback();
         doc = libtextmode.new_document({columns, rows, title, author, group, date, palette, font_name, use_9px_font, ice_colors, extended_colors, comments, data});
+        doc.animation = null;
         active_layer = 0;
+        _current_frame = 0;
         await this.start_rendering();
         this.emit("new_document");
         this.ready();
@@ -784,6 +790,12 @@ class TextModeDoc extends events.EventEmitter {
     get is_layered() { return doc && doc.layers && doc.layers.length > 1; }
     get active_layer() { return active_layer; }
     get layers() { return doc ? doc.layers : null; }
+    get animation() { return doc ? doc.animation : null; }
+    get animation_mode() { return !!(doc && doc.animation); }
+    get current_frame() { return _current_frame; }
+    get frame_count() { return doc && doc.animation ? doc.animation.frames.length : 0; }
+    get animation_fps() { return doc && doc.animation ? doc.animation.fps : 8; }
+    get is_playing() { return _is_playing; }
     get c64_background() {return doc.c64_background;}
     set c64_background(value) {doc.c64_background = value;}
 
@@ -1398,10 +1410,110 @@ class TextModeDoc extends events.EventEmitter {
         this.merge_all_layers();
     }
 
+    enable_animation_mode() {
+        if (!doc || doc.animation) return;
+        doc.animation = {fps: 8, frames: [{layers: doc.layers, delay_ms: 0}]};
+        _current_frame = 0;
+        this.emit("animation_mode_changed", true);
+        this.emit("animation_changed");
+    }
+
+    disable_animation_mode() {
+        if (!doc || !doc.animation) return;
+        this.stop_playback();
+        doc.animation = null;
+        _current_frame = 0;
+        this.emit("animation_mode_changed", false);
+        this.emit("animation_changed");
+    }
+
+    goto_frame(idx) {
+        if (!doc || !doc.animation) return;
+        const frames = doc.animation.frames;
+        if (idx < 0 || idx >= frames.length) return;
+        _current_frame = idx;
+        doc.layers = frames[idx].layers;
+        active_layer = Math.min(active_layer, doc.layers.length - 1);
+        this.undo_history.reset_undos();
+        this._recomposite_all();
+        this.start_rendering().then(() => {
+            this.emit("frame_changed", _current_frame);
+            this.emit("layers_changed");
+        });
+    }
+
+    clone_frame(idx) {
+        if (!doc || !doc.animation) return;
+        const src = doc.animation.frames[idx];
+        const clone = {
+            layers: src.layers.map(l => ({...l, data: l.data.map(b => b ? {...b} : null)})),
+            delay_ms: src.delay_ms,
+        };
+        doc.animation.frames.splice(idx + 1, 0, clone);
+        this.goto_frame(idx + 1);
+        this.emit("animation_changed");
+    }
+
+    add_blank_frame(after_idx) {
+        if (!doc || !doc.animation) return;
+        const bg_layer = libtextmode.make_layer("Background", doc.columns, doc.rows);
+        doc.animation.frames.splice(after_idx + 1, 0, {layers: [bg_layer], delay_ms: 0});
+        this.goto_frame(after_idx + 1);
+        this.emit("animation_changed");
+    }
+
+    delete_frame(idx) {
+        if (!doc || !doc.animation || doc.animation.frames.length <= 1) return;
+        doc.animation.frames.splice(idx, 1);
+        const new_idx = Math.min(idx, doc.animation.frames.length - 1);
+        _current_frame = -1;
+        this.goto_frame(new_idx);
+        this.emit("animation_changed");
+    }
+
+    set_frame_delay(idx, delay_ms) {
+        if (!doc || !doc.animation) return;
+        doc.animation.frames[idx].delay_ms = Math.max(0, delay_ms);
+        this.emit("animation_changed");
+    }
+
+    set_animation_fps(fps) {
+        if (!doc || !doc.animation) return;
+        doc.animation.fps = Math.max(1, Math.min(60, fps));
+        this.emit("animation_changed");
+    }
+
+    start_playback() {
+        if (!doc || !doc.animation || _is_playing) return;
+        _is_playing = true;
+        this.emit("playback_started");
+        const tick = () => {
+            if (!_is_playing) return;
+            const next = (_current_frame + 1) % doc.animation.frames.length;
+            this.goto_frame(next);
+            const frame = doc.animation.frames[_current_frame];
+            const delay = frame.delay_ms > 0 ? frame.delay_ms : Math.round(1000 / doc.animation.fps);
+            _playback_timer = setTimeout(tick, delay);
+        };
+        const first = doc.animation.frames[_current_frame];
+        const first_delay = first.delay_ms > 0 ? first.delay_ms : Math.round(1000 / doc.animation.fps);
+        _playback_timer = setTimeout(tick, first_delay);
+    }
+
+    stop_playback() {
+        if (!_is_playing) return;
+        _is_playing = false;
+        if (_playback_timer) {clearTimeout(_playback_timer); _playback_timer = null;}
+        this.emit("playback_stopped");
+    }
+
     async open(file) {
+        this.stop_playback();
         const parsed = await libtextmode.read_file(file);
         doc = libtextmode.new_document(parsed);
+        doc.animation = parsed.animation || null;
         active_layer = 0;
+        _current_frame = 0;
         this.undo_history.reset_undos();
         this.file = file;
         await this.start_rendering();
@@ -1446,6 +1558,10 @@ class TextModeDoc extends events.EventEmitter {
 
     export_as_apng(file) {
         libtextmode.export_as_apng(render, file);
+    }
+
+    export_as_ansimation(file) {
+        libtextmode.export_as_ansimation(this, file);
     }
 
     constructor() {

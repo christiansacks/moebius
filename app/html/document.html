@@ -76,6 +76,24 @@
                     </div>
                 </div>
             </div>
+            <div id = "animation_panel" class = "hidden">
+                <div id = "anim_resize_handle"></div>
+                <div id = "anim_controls">
+                    <button class = "anim_btn" id = "anim_first" title = "First frame">⏮</button>
+                    <button class = "anim_btn" id = "anim_prev" title = "Previous frame">◀</button>
+                    <button class = "anim_btn" id = "anim_play" title = "Play / Pause">▶</button>
+                    <button class = "anim_btn" id = "anim_next" title = "Next frame">▶</button>
+                    <button class = "anim_btn" id = "anim_last" title = "Last frame">⏭</button>
+                    <span id = "anim_frame_info">Frame 1 / 1</span>
+                    <label>FPS <input type = "number" id = "anim_fps" value = "8" min = "1" max = "60" step = "1"></label>
+                    <label>Delay <input type = "number" id = "anim_delay_ms" value = "0" min = "0" step = "50" placeholder = "default">ms</label>
+                    <button class = "anim_btn" id = "anim_clone" title = "Clone current frame">+ Clone</button>
+                    <button class = "anim_btn" id = "anim_blank" title = "Add blank frame">+ Blank</button>
+                    <button class = "anim_btn" id = "anim_del" title = "Delete current frame">✕ Del</button>
+                    <button class = "anim_btn anim_dock_btn" id = "anim_dock_toggle" title = "Move to bottom / right panel">⇅</button>
+                </div>
+                <div id = "anim_strip"></div>
+            </div>
         </div>
         <div id = "toolbar">
             <div class = "panel hidden" id = "select_panel">

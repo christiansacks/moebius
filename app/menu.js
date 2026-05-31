@@ -130,6 +130,7 @@ function file_menu_template(win) {
             {type: "separator"},
             {label: "Export As PNG\u2026", id: "export_as_png", accelerator: "CmdorCtrl+Shift+E", click(item) {win.send("export_as_png");}},
             {label: "Export As Animated PNG\u2026", id: "export_as_apng", accelerator: "CmdorCtrl+Shift+A", click(item) {win.send("export_as_apng");}},
+            {label: "Export As ANSImation\u2026", id: "export_as_ansimation", click(item) {win.send("export_as_ansimation");}, enabled: false},
             {type: "separator"},
             {label: "Export As UTF-8\u2026", id: "export_as_utf8", accelerator: "CmdorCtrl+Shift+U", click(item) {win.send("export_as_utf8");}},
             {type: "separator"},
@@ -237,6 +238,7 @@ function view_menu_template(win) {
             {label: "Show Tool Bar", id: "show_tool_bar", accelerator: "CmdorCtrl+T", click(item) {win.send("show_toolbar", item.checked);}, type: "checkbox", checked: true},
             {label: "Show Preview", id: "show_preview", accelerator: "CmdorCtrl+Alt+P", click(item) {win.send("show_preview", item.checked);}, type: "checkbox", checked: true},
             {label: "Show Layers Panel", id: "show_layers_panel", accelerator: "CmdorCtrl+Shift+L", click(item) {win.send("show_layers_panel", item.checked);}, type: "checkbox", checked: true},
+            {label: "Animation Mode", id: "animation_mode", accelerator: "CmdorCtrl+Shift+M", click(item) {win.send("toggle_animation_mode");}, type: "checkbox", checked: false},
             {type: "separator"},
             {label: "Previous Character Set", id: "previous_character_set", accelerator: "Ctrl+,", click(item) {win.send("previous_character_set");}, enabled: true},
             {label: "Next Character Set", id: "next_character_set", accelerator: "Ctrl+.", click(item) {win.send("next_character_set");}, enabled: true},
@@ -642,6 +644,13 @@ electron.ipcMain.on("update_menu_checkboxes", (event, {id, insert_mode, overwrit
 electron.ipcMain.on("update_font_menu", (event, {id, font_name}) => {
     const item = get_menu_item(id, "font_current_label");
     if (item) item.label = font_name ? `Font: ${font_name}` : "No font selected";
+});
+
+electron.ipcMain.on("update_animation_menu", (event, {id, enabled}) => {
+    const mode_item = get_menu_item(id, "animation_mode");
+    if (mode_item) mode_item.checked = enabled;
+    const export_item = get_menu_item(id, "export_as_ansimation");
+    if (export_item) export_item.enabled = enabled;
 });
 
 electron.ipcMain.on("update_layer_menu", (event, {id, active_layer, layer_count}) => {
