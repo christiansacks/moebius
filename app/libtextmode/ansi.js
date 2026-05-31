@@ -818,4 +818,139 @@ function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
     return bytes;
 }
 
-module.exports = {Ansi, encode_as_ansi, ansi_to_bin_color};
+// Incremental ANSI parser — feed bytes in chunks, query screen state at any point.
+// Handles ESC[2J (clear screen), ESC[s/u (save/restore), all cursor moves and SGR.
+class IncrementalAnsiParser {
+    constructor(columns) {
+        this.screen = new Screen(columns);
+        this._pre = false;
+        this._esc = false;
+        this._seq = new EscapeSequence();
+    }
+
+    feed(bytes) {
+        for (let i = 0; i < bytes.length; i++) {
+            const code = bytes[i];
+            if (this._esc) {
+                if (code >= ascii.ZERO && code <= ascii.NINE) {
+                    this._seq.append_numeric(code - ascii.ZERO);
+                } else if (code === ascii.COLON || code === ascii.SEMI_COLON) {
+                    if (this._seq.no_value) this._seq.values.push(1);
+                    this._seq.no_value = true;
+                } else if (code >= ascii.AT_SYMBOL && code <= ascii.TILDA) {
+                    this._esc = false;
+                    delete this._seq.no_value;
+                    this._apply_sequence(String.fromCharCode(code));
+                    this._seq = new EscapeSequence();
+                }
+            } else if (code === ascii.ESCAPE && !this._pre) {
+                this._pre = true;
+            } else if (code === ascii.OPEN_SQUARE_BRACKET && this._pre) {
+                this._pre = false;
+                this._esc = true;
+            } else {
+                this._pre = false;
+                switch (code) {
+                    case ascii.NEW_LINE: this.screen.new_line(); break;
+                    case ascii.CARRIAGE_RETURN: break;
+                    default: this.screen.literal(code); break;
+                }
+            }
+        }
+    }
+
+    _apply_sequence(ch) {
+        const s = this._seq;
+        switch (ch) {
+            case 'A': s.set_defaults(1,1); this.screen.up(s.values[0]); break;
+            case 'B': s.set_defaults(1,1); this.screen.down(s.values[0]); break;
+            case 'C': s.set_defaults(1,1); this.screen.right(s.values[0]); break;
+            case 'D': s.set_defaults(1,1); this.screen.left(s.values[0]); break;
+            case 'H': case 'f': s.set_defaults(1,2); this.screen.move(s.values[1], s.values[0]); break;
+            case 'J': s.set_default(0); if (s.values[0] === 2) this.screen.clear(); break;
+            case 'K': s.set_default(0); if (s.values[0] === 0) this.screen.clear_until_end_of_line(); break;
+            case 's': this.screen.save_pos(); break;
+            case 'u': this.screen.restore_pos(); break;
+            case 'm': {
+                s.set_default(0);
+                for (let vi = 0; vi < s.values.length; vi++) {
+                    const v = s.values[vi];
+                    if (v === 38 && s.values[vi+1] === 5 && vi+2 < s.values.length) {
+                        const idx = s.values[vi+2]; vi += 2;
+                        this.screen.fg_idx = idx; this.screen.fg_rgb = palette_256[idx];
+                    } else if (v === 48 && s.values[vi+1] === 5 && vi+2 < s.values.length) {
+                        const idx = s.values[vi+2]; vi += 2;
+                        this.screen.bg_idx = idx; this.screen.bg_rgb = palette_256[idx];
+                    } else if (v >= 30 && v <= 37) {
+                        this.screen.fg = v - 30; this.screen.fg_rgb = undefined; this.screen.fg_idx = undefined;
+                    } else if (v >= 40 && v <= 47) {
+                        this.screen.bg = v - 40; this.screen.bg_rgb = undefined; this.screen.bg_idx = undefined;
+                    } else {
+                        switch (v) {
+                            case 0: this.screen.reset_attributes(); break;
+                            case 1: this.screen.bold = true; this.screen.fg_rgb = undefined; this.screen.fg_idx = undefined; break;
+                            case 5: this.screen.blink = true; break;
+                            case 7: this.screen.inverse = true; break;
+                            case 22: this.screen.bold = false; break;
+                            case 25: this.screen.blink = false; break;
+                            case 27: this.screen.inverse = false; break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    get_data() { return this.screen.trim_data(); }
+    get rows() { return this.screen.rows; }
+    get columns() { return this.screen.columns; }
+}
+
+function split_on_separator(data, sep) {
+    const chunks = [];
+    let start = 0;
+    const end = data.length - sep.length;
+    for (let i = 0; i <= end; i++) {
+        let match = true;
+        for (let j = 0; j < sep.length; j++) {
+            if (data[i + j] !== sep[j]) { match = false; break; }
+        }
+        if (match) {
+            chunks.push(data.slice(start, i));
+            start = i + sep.length;
+            i += sep.length - 1;
+        }
+    }
+    chunks.push(data.slice(start));
+    return chunks;
+}
+
+// Detects ANSImation frames separated by ESC[2J (OG BBS format).
+// Returns array of parsed Ansi objects (one per frame), or null if not an animation.
+function detect_animation_chunks(bytes) {
+    const textmode = new Textmode(bytes);
+    const content = textmode.bytes; // already SAUCE-stripped
+
+    const SEP_2J = [0x1b, 0x5b, 0x32, 0x4a]; // ESC[2J
+    const chunks = split_on_separator(content, SEP_2J);
+    const real_chunks = chunks.filter(c => c.length >= 50);
+
+    if (real_chunks.length > 1) {
+        return {
+            frames: real_chunks.map(c => new Ansi(Buffer.from(c))),
+            raw_bytes: content,
+            title: textmode.title || "",
+            author: textmode.author || "",
+            group: textmode.group || "",
+            date: textmode.date || "",
+            comments: textmode.comments || "",
+            font_name: textmode.font_name || "IBM VGA",
+            ice_colors: textmode.ice_colors || false,
+            use_9px_font: textmode.use_9px_font || false,
+        };
+    }
+    return null;
+}
+
+module.exports = {Ansi, encode_as_ansi, ansi_to_bin_color, detect_animation_chunks, IncrementalAnsiParser};

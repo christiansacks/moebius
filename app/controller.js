@@ -63,6 +63,9 @@ doc.on("animation_changed", () => animation_panel.update());
 doc.on("frame_changed", (idx) => animation_panel.update_frame(idx));
 doc.on("playback_started", () => animation_panel.set_playing(true));
 doc.on("playback_stopped", () => animation_panel.set_playing(false));
+doc.on("stream_playback_started", () => animation_panel.set_stream_playing(true));
+doc.on("stream_playback_stopped", () => animation_panel.set_stream_playing(false));
+doc.on("stream_progress", (p) => animation_panel.set_stream_progress(p));
 
 async function process_save(method = 'save', destroy_when_done = false, ignore_controlcharacters = false) {
     var ctrl = false;

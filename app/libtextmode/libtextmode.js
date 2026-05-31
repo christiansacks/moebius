@@ -1,6 +1,6 @@
 const {Font} = require("./font");
 const {create_canvas, join_canvases} = require("./canvas");
-const {Ansi, encode_as_ansi, ansi_to_bin_color} = require("./ansi");
+const {Ansi, encode_as_ansi, ansi_to_bin_color, detect_animation_chunks, IncrementalAnsiParser} = require("./ansi");
 const {BinaryText, encode_as_bin} = require("./binary_text");
 const {XBin, encode_as_xbin} = require("./xbin");
 const {CtrlA, encode_as_ctrla} = require("./ctrla");
@@ -23,8 +23,46 @@ function read_bytes(bytes, file) {
         case ".xb": result = new XBin(bytes); break;
         case ".msg": result = new CtrlA(bytes); break;
         case ".ans":
-        default:
-        result = new Ansi(bytes);
+        default: {
+            const anim = detect_animation_chunks(bytes);
+            if (anim && anim.frames.length > 1) {
+                const columns = anim.frames[0].columns || 80;
+                const rows = Math.max(...anim.frames.map(f => f.rows || 25));
+                const blank = {fg: 7, bg: 0, code: 32};
+                // Build layers array per frame, padding shorter frames to rows height.
+                // frame_layers[0] is shared as both top-level layers and animation.frames[0].layers
+                // so doc.layers === doc.animation.frames[0].layers after new_document().
+                const frame_layers = anim.frames.map(f => {
+                    const bg = make_layer("Background", columns, rows);
+                    const copy_count = Math.min(f.data.length, bg.data.length);
+                    for (let i = 0; i < copy_count; i++) bg.data[i] = f.data[i];
+                    for (let i = copy_count; i < bg.data.length; i++) bg.data[i] = blank;
+                    return [bg];
+                });
+                result = {
+                    columns,
+                    rows,
+                    title: anim.title,
+                    author: anim.author,
+                    group: anim.group,
+                    date: anim.date,
+                    comments: anim.comments,
+                    font_name: anim.font_name,
+                    ice_colors: anim.ice_colors,
+                    use_9px_font: anim.use_9px_font,
+                    extended_colors: anim.frames[0].extended_colors || false,
+                    palette: anim.frames[0].palette,
+                    layers: frame_layers[0],
+                    animation: {
+                        fps: 8,
+                        raw_stream: anim.raw_bytes,
+                        frames: frame_layers.map(layers => ({delay_ms: 0, reveal: "inchworm", layers})),
+                    },
+                };
+            } else {
+                result = new Ansi(bytes);
+            }
+        }
     }
     if (result.extended_colors === undefined && result.data) {
         result.extended_colors = result.data.some(b => b.fg_rgb || b.bg_rgb || b.fg_idx !== undefined || b.bg_idx !== undefined);
@@ -755,21 +793,59 @@ function export_as_apng(render, file) {
     fs.writeFileSync(file, Buffer.from(bytes));
 }
 
-function export_as_ansimation(doc_obj, file) {
-    const anim = doc_obj.animation;
-    if (!anim || !anim.frames.length) return;
-    const {columns, rows, ice_colors, extended_colors} = doc_obj;
-    const CURSOR_HOME = Buffer.from([27, 91, 72]); // ESC[H
+function cursor_move_buf(row, col) {
+    return Buffer.from(`\x1b[${row};${col}H`, "ascii");
+}
+
+// Generate a streaming ANSI byte sequence for a single frame with the chosen reveal effect.
+// effect: "instant" (ESC[2J + full frame) | "inchworm" (row-by-row with cursor positioning)
+function generate_frame_stream(frame, columns, rows, opts, effect) {
+    const {ice_colors = false, extended_colors = false, c64_background} = opts || {};
+    const data = composite_layers(frame.layers, columns, rows, extended_colors);
     const parts = [];
-    for (let i = 0; i < anim.frames.length; i++) {
-        const frame = anim.frames[i];
-        const data = composite_layers(frame.layers, columns, rows, extended_colors);
-        const frame_doc = {columns, rows, data, ice_colors, extended_colors, c64_background: doc_obj.c64_background};
-        const encoded = encode_as_ansi(frame_doc, true);
-        parts.push(Buffer.isBuffer(encoded) ? encoded : Buffer.from(encoded, "binary"));
-        if (i < anim.frames.length - 1) parts.push(CURSOR_HOME);
+
+    if (effect === "instant") {
+        parts.push(Buffer.from([27, 91, 50, 74])); // ESC[2J
+        const frame_doc = {columns, rows, data, ice_colors, extended_colors, c64_background};
+        const enc = encode_as_ansi(frame_doc, true);
+        parts.push(Buffer.isBuffer(enc) ? enc : Buffer.from(enc, "binary"));
+    } else {
+        // inchworm: clear then reveal row by row with explicit cursor positioning
+        parts.push(Buffer.from([27, 91, 52, 48, 109, 27, 91, 50, 74])); // ESC[40m + ESC[2J
+        for (let row = 0; row < rows; row++) {
+            parts.push(cursor_move_buf(row + 1, 1));
+            const row_doc = {
+                columns, rows: 1,
+                data: data.slice(row * columns, (row + 1) * columns),
+                ice_colors, extended_colors, c64_background,
+            };
+            const enc = encode_as_ansi(row_doc, true);
+            parts.push(Buffer.isBuffer(enc) ? enc : Buffer.from(enc, "binary"));
+            // ESC[s + \n + ESC[u after each row (authentic inchworm signature)
+            if (row < rows - 1) parts.push(Buffer.from([27, 91, 115, 10, 27, 91, 117]));
+        }
     }
-    fs.writeFileSync(file, Buffer.concat(parts));
+    return Buffer.concat(parts);
+}
+
+// Generate the full animation byte stream from all frames (used for playback and export).
+function generate_animation_stream(doc_obj) {
+    const anim = doc_obj.animation;
+    if (!anim || !anim.frames.length) return null;
+    const opts = {
+        ice_colors: doc_obj.ice_colors,
+        extended_colors: doc_obj.extended_colors,
+        c64_background: doc_obj.c64_background,
+    };
+    const parts = anim.frames.map(f =>
+        generate_frame_stream(f, doc_obj.columns, doc_obj.rows, opts, f.reveal || "inchworm")
+    );
+    return Buffer.concat(parts);
+}
+
+function export_as_ansimation(doc_obj, file) {
+    const stream = generate_animation_stream(doc_obj);
+    if (stream) fs.writeFileSync(file, stream);
 }
 
 function remove_ice_color_for_block(block) {
@@ -809,4 +885,4 @@ function remove_ice_colors(doc) {
     return new_doc;
 }
 
-module.exports = {Font, read_bytes, read_file, write_file, animate, render, render_split, render_at, render_insert_column, render_delete_column, render_insert_row, render_delete_row, new_document, clone_document, resize_canvas, cp437_to_unicode, cp437_to_unicode_bytes, unicode_to_cp437, render_blocks, merge_blocks, flip_code_x, flip_x, flip_y, rotate, insert_column, insert_row, delete_column, delete_row, scroll_canvas_up, scroll_canvas_down, scroll_canvas_left, scroll_canvas_right, render_scroll_canvas_up, render_scroll_canvas_down, render_scroll_canvas_left, render_scroll_canvas_right, get_data_url, ega, c64, convert_ega_to_style, compress, uncompress, get_blocks, get_all_blocks, export_as_png, export_as_apng, export_as_ansimation, has_ansi_palette, has_c64_palette, encode_as_bin, encode_as_xbin, encode_as_ansi, remove_ice_colors, make_layer, composite_cell_at, composite_layers, BLEND_MODES, encode_as_mob};
+module.exports = {Font, read_bytes, read_file, write_file, animate, render, render_split, render_at, render_insert_column, render_delete_column, render_insert_row, render_delete_row, new_document, clone_document, resize_canvas, cp437_to_unicode, cp437_to_unicode_bytes, unicode_to_cp437, render_blocks, merge_blocks, flip_code_x, flip_x, flip_y, rotate, insert_column, insert_row, delete_column, delete_row, scroll_canvas_up, scroll_canvas_down, scroll_canvas_left, scroll_canvas_right, render_scroll_canvas_up, render_scroll_canvas_down, render_scroll_canvas_left, render_scroll_canvas_right, get_data_url, ega, c64, convert_ega_to_style, compress, uncompress, get_blocks, get_all_blocks, export_as_png, export_as_apng, export_as_ansimation, generate_animation_stream, IncrementalAnsiParser, has_ansi_palette, has_c64_palette, encode_as_bin, encode_as_xbin, encode_as_ansi, remove_ice_colors, make_layer, composite_cell_at, composite_layers, BLEND_MODES, encode_as_mob};
