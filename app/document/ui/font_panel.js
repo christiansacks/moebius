@@ -420,6 +420,7 @@ function init() {
         current_font = font;
         update_panel_name(font ? font.name : "No font selected");
         update_color_pickers_visibility();
+        send("update_font_menu", {font_name: font ? font.name : null});
     });
 
     // Dismiss dialog on outside click
@@ -431,4 +432,4 @@ function init() {
     });
 }
 
-module.exports = {init, get dialog_open() { return dialog_open; }};
+module.exports = {init, open_picker: show_font_picker, get dialog_open() { return dialog_open; }};

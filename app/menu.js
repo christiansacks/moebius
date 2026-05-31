@@ -341,8 +341,19 @@ function layer_menu_template(win) {
     };
 }
 
+function font_menu_template(win) {
+    return {
+        label: "&Font",
+        submenu: [
+            {label: "No font selected", id: "font_current_label", enabled: false},
+            {type: "separator"},
+            {label: "Choose Font…", id: "font_choose", accelerator: "CmdorCtrl+Shift+T", click(item) {win.send("font_open_picker");}},
+        ],
+    };
+}
+
 function create_menu_template(win, chat, debug) {
-    const menu_lists = [file_menu_template(win), edit_menu_template(win, chat), selection_menu_template(win, chat), colors_menu_template(win), view_menu_template(win), layer_menu_template(win), network_menu_template(win, chat)];
+    const menu_lists = [file_menu_template(win), edit_menu_template(win, chat), selection_menu_template(win, chat), colors_menu_template(win), view_menu_template(win), layer_menu_template(win), font_menu_template(win), network_menu_template(win, chat)];
     if (debug) menu_lists.push(debug_menu_template(win));
     return menu_lists;
 }
@@ -626,6 +637,11 @@ electron.ipcMain.on("update_menu_checkboxes", (event, {id, insert_mode, overwrit
             font_names[id] = font_name;
         }
     }
+});
+
+electron.ipcMain.on("update_font_menu", (event, {id, font_name}) => {
+    const item = get_menu_item(id, "font_current_label");
+    if (item) item.label = font_name ? `Font: ${font_name}` : "No font selected";
 });
 
 electron.ipcMain.on("update_layer_menu", (event, {id, active_layer, layer_count}) => {
