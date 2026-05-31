@@ -600,6 +600,7 @@ class Toolbar extends events.EventEmitter {
 
     show_font() {
         send("disable_brush_size_shortcuts");
+        send("enable_editing_shortcuts");
         $("select_panel").classList.add("hidden");
         $("brush_panel").classList.add("hidden");
         $("sample_panel").classList.add("hidden");

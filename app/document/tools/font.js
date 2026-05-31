@@ -2,6 +2,7 @@ const {tools, toolbar} = require("../ui/ui");
 const keyboard = require("../input/keyboard");
 const mouse = require("../input/mouse");
 const doc = require("../doc");
+const {send} = require("../../senders");
 const {font_char_to_blocks} = require("../../libtextmode/tdf");
 const {EventEmitter} = require("events");
 
@@ -9,10 +10,11 @@ const font_tool = new EventEmitter();
 
 let enabled = false;
 let cursor_x = 0, cursor_y = 0;
-let line_origin_x = 0;  // x where current line started (for wrap)
-let current_font = null; // {name, type, spacing, block_size, chars}
+let line_origin_x = 0;
+let line_height = 0; // tallest char stamped on current line
+let current_font = null;
 let override_fg = 7, override_bg = 0;
-let stamp_history = []; // [{x, y, columns, rows}] for backspace undo
+let stamp_history = [];
 
 function is_color_font() { return current_font && current_font.type === 2; }
 
@@ -40,32 +42,30 @@ function char_width(char_code) {
 function stamp_char(char_code) {
     if (!current_font) return;
     const rows = get_char_rows(char_code);
-    const block_size = current_font.block_size || 8;
     const spacing = current_font.spacing || 1;
 
     if (!rows) {
-        // Undefined character: advance by block_size/2 or spacing as space
         cursor_x += spacing + 1;
-        check_wrap(0, block_size);
         return;
     }
 
     const width = Math.max(...rows.map(r => r.length));
+    const height = rows.length;
 
     // Wrap before stamping if needed
     if (cursor_x + width > doc.columns) {
         cursor_x = line_origin_x;
-        cursor_y += block_size;
+        cursor_y += height;
     }
-    if (cursor_y + block_size > doc.rows) return; // off canvas
+    if (cursor_y + height > doc.rows) return; // off canvas
 
-    const blocks = font_char_to_blocks(rows, block_size, override_fg, override_bg, is_color_font());
+    const blocks = font_char_to_blocks(rows, height, override_fg, override_bg, is_color_font());
 
-    doc.start_undo();
     doc.place(blocks, cursor_x, cursor_y);
 
-    stamp_history.push({x: cursor_x, y: cursor_y, columns: width, rows: block_size});
+    stamp_history.push({x: cursor_x, y: cursor_y, columns: width, rows: height});
     cursor_x += width + spacing;
+    line_height = Math.max(line_height, height);
     font_tool.emit("cursor_moved", cursor_x, cursor_y);
 }
 
@@ -79,8 +79,6 @@ function check_wrap(width, block_size) {
 function backspace_char() {
     if (stamp_history.length === 0) return;
     const last = stamp_history.pop();
-    // Erase the stamped region with transparent/blank cells
-    doc.start_undo();
     doc.erase(last.x, last.y, last.x + last.columns - 1, last.y + last.rows - 1);
     cursor_x = last.x;
     cursor_y = last.y;
@@ -88,11 +86,10 @@ function backspace_char() {
 }
 
 function new_line() {
-    if (!current_font) return;
-    const block_size = current_font.block_size || 8;
     cursor_x = line_origin_x;
-    cursor_y += block_size;
-    stamp_history = []; // can't backspace past a newline
+    cursor_y += line_height || 8;
+    line_height = 0;
+    stamp_history = [];
     font_tool.emit("cursor_moved", cursor_x, cursor_y);
 }
 
@@ -101,6 +98,8 @@ tools.on("start", (mode) => {
     if (enabled) {
         stamp_history = [];
         toolbar.show_font();
+    } else {
+        send("disable_editing_shortcuts");
     }
     font_tool.emit("enabled", enabled);
 });
@@ -110,6 +109,7 @@ mouse.on("down", (x, y, half_y, is_legal) => {
     cursor_x = x;
     cursor_y = y;
     line_origin_x = x;
+    line_height = 0;
     stamp_history = [];
     font_tool.emit("cursor_moved", cursor_x, cursor_y);
 });

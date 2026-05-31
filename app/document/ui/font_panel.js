@@ -16,6 +16,7 @@ let index_loading = false;
 let current_entry = null;
 let current_font = null;
 let preview_gen = 0; // cancels stale renders
+let dialog_open = false; // flag for keyboard handler
 
 function $(id) { return document.getElementById(id); }
 
@@ -234,6 +235,9 @@ async function show_font_picker() {
     const dialog = $("font_picker_dialog");
     if (!dialog) return;
     dialog.classList.remove("hidden");
+    dialog_open = true;
+    const preview_text = $("font_preview_text");
+    if (preview_text) preview_text.focus();
     await render_font_list($("font_search").value || "");
     render_picker_preview();
 }
@@ -241,6 +245,7 @@ async function show_font_picker() {
 function hide_font_picker() {
     const dialog = $("font_picker_dialog");
     if (dialog) dialog.classList.add("hidden");
+    dialog_open = false;
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -250,7 +255,13 @@ function init() {
     if (change_btn) change_btn.addEventListener("click", show_font_picker);
 
     const search = $("font_search");
-    if (search) search.addEventListener("input", () => render_font_list(search.value));
+    if (search) {
+        search.addEventListener("input", () => render_font_list(search.value));
+        search.addEventListener("keydown", (e) => {
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        }, true);
+    }
 
     const close_btn = $("font_picker_close");
     if (close_btn) close_btn.addEventListener("click", hide_font_picker);
@@ -270,7 +281,40 @@ function init() {
     const preview_text = $("font_preview_text");
     if (preview_text) {
         preview_text.addEventListener("input", render_picker_preview);
+        preview_text.addEventListener("keydown", (e) => {
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        }, true);
         preview_text.placeholder = "Moebius Rulez";
+    }
+
+    // Dialog dragging by header
+    let drag_state = null;
+    const header = $("font_picker_header");
+    const dialog = $("font_picker_dialog");
+    if (header && dialog) {
+        header.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            const rect = dialog.getBoundingClientRect();
+            // Remove transform to allow left/top positioning
+            dialog.style.transform = "none";
+            drag_state = {
+                start_x: e.clientX,
+                start_y: e.clientY,
+                dialog_x: rect.left,
+                dialog_y: rect.top,
+            };
+        });
+        document.addEventListener("mousemove", (e) => {
+            if (!drag_state) return;
+            const dx = e.clientX - drag_state.start_x;
+            const dy = e.clientY - drag_state.start_y;
+            dialog.style.left = (drag_state.dialog_x + dx) + "px";
+            dialog.style.top = (drag_state.dialog_y + dy) + "px";
+        });
+        document.addEventListener("mouseup", () => {
+            drag_state = null;
+        });
     }
 
     // Re-render preview when palette changes (affects outline/block fonts)
@@ -302,4 +346,4 @@ function init() {
     });
 }
 
-module.exports = {init};
+module.exports = {init, get dialog_open() { return dialog_open; }};

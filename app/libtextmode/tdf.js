@@ -3,37 +3,57 @@ const path = require("path");
 
 const TDF_SIG = "\x13TheDraw FONTS file\x1a";
 
-// Parse a single font record from a buffer starting at `off` (the 0x0C separator byte).
+// Parse a single font from a complete .TDF file buffer (one font per file).
 // Returns {name, type, spacing, block_size, chars} or null if invalid.
-// chars: Map of char_code (33–126) → array of rows, each row = [{code, fg, bg}]
-function parse_font(buf, off) {
-    if (buf[off] !== 0x0C) return null;
-    const name      = buf.slice(off + 1, off + 13).toString("ascii").replace(/\0/g, "").trim();
-    const type      = buf[off + 17]; // 0=outline, 1=block, 2=color
-    const spacing   = buf[off + 18];
-    const block_size = buf[off + 19];
-    const table_off = off + 20;
-    const data_off  = table_off + 94 * 2;
+// Format from tdfonts.js: each file has exactly one font at fixed offsets
+function parse_font(buf) {
+    if (buf.length < 233) return null;
+
+    // Check magic signature
+    const magic = "\x13TheDraw FONTS file\x1a";
+    for (let i = 0; i < magic.length; i++) {
+        if (buf[i] !== magic.charCodeAt(i)) return null;
+    }
+
+    // Parse header at fixed offsets (from tdfonts.js)
+    const nameLen   = buf[24];
+    const name      = buf.slice(25, 25 + nameLen).toString("ascii").trim();
+    const type      = buf[41]; // 0=outline, 1=block, 2=color
+    const spacing   = buf[42];
+    const block_size = buf[43];
+
+    // Character offset table at offset 45 (94 chars * 2 bytes each)
+    const table_off = 45;
+    const data_off  = 233; // Font data starts here
 
     const chars = new Map();
     for (let i = 0; i < 94; i++) {
         const char_off = buf.readUInt16LE(table_off + i * 2);
-        if ((char_off >> 8) === 0xFF) continue; // undefined
+        if (char_off === 0xffff) continue; // undefined character
 
         const abs = data_off + char_off;
         if (abs >= buf.length) continue;
 
+        // Read character: width, height, then cell data
+        const width = buf[abs];
+        const height = buf[abs + 1];
+        let p = abs + 2;
+
         const rows = [];
-        let row = [], p = abs;
-        while (p < buf.length) {
-            const b = buf[p++];
-            if (b === 0x00) break;
-            if (b === 0x0D) { rows.push(row); row = []; }
-            else {
+        let row = [];
+
+        while (p < buf.length && buf[p] !== 0x00) {
+            let ch = buf[p++];
+
+            if (ch === 0x0D) { // Carriage return / end of row
+                rows.push(row);
+                row = [];
+            } else {
+                // Read color byte if color font
                 const attr = (type === 2) ? buf[p++] : 0;
                 const fg = (type === 2) ? (attr & 0x0F) : 7;
                 const bg = (type === 2) ? ((attr >> 4) & 0x0F) : 0;
-                row.push({code: b, fg, bg});
+                row.push({code: ch, fg, bg});
             }
         }
         if (row.length > 0) rows.push(row);
@@ -43,66 +63,16 @@ function parse_font(buf, off) {
     return {name, type, spacing, block_size, chars};
 }
 
-// Scan a .TDF file and return an array of parsed fonts.
-function parse_tdf_file(file_path) {
-    let buf;
-    try { buf = fs.readFileSync(file_path); } catch (_) { return []; }
-    if (buf.length < TDF_SIG.length) return [];
-    if (buf.slice(0, TDF_SIG.length).toString("ascii") !== TDF_SIG) return [];
 
-    const fonts = [];
-    let off = 24; // skip global header
-    while (off < buf.length) {
-        if (buf[off] !== 0x0C) { off++; continue; }
-        const font = parse_font(buf, off);
-        if (font) fonts.push(font);
-        // advance past this font: next 0x0C
-        off++;
-        while (off < buf.length && buf[off] !== 0x0C) off++;
-    }
-    return fonts;
-}
-
-// Validate that offset looks like a real font record start (not a 0x0C in cell data).
-// Real record: 0x0C + 12-byte name + 2 pad + type (0-2) + spacing (0-15) + blocksize (0-20)
-function is_valid_font_header(buf, off) {
-    if (off + 22 > buf.length) return false;
-    if (buf[off] !== 0x0C) return false;
-    // Skip if name looks like binary junk: check for too many non-printable chars
-    let printable = 0;
-    for (let i = off + 1; i < off + 13; i++) {
-        const b = buf[i];
-        if ((b >= 32 && b < 127) || b === 0) printable++;
-    }
-    if (printable < 4) return false; // at least 4 printable chars in a 12-byte name
-    // Type should be 0, 1, or 2
-    const type = buf[off + 17];
-    if (type > 2) return false;
-    // Spacing should be reasonable (0-15)
-    const spacing = buf[off + 18];
-    if (spacing > 15) return false;
-    // Block size should be reasonable (0-32)
-    const blocksize = buf[off + 19];
-    if (blocksize > 32) return false;
-    return true;
-}
-
-// Scan one buffer for font name entries (no cell data parsed).
+// Scan one buffer for font name entries. Each .TDF file contains exactly one font.
 function scan_names_from_buf(buf, full_path) {
-    if (buf.length < TDF_SIG.length) return [];
-    if (buf.slice(0, TDF_SIG.length).toString("ascii") !== TDF_SIG) return [];
-    const entries = [];
-    let off = 24, font_index = 0;
-    while (off < buf.length) {
-        if (is_valid_font_header(buf, off)) {
-            const name = buf.slice(off + 1, off + 13).toString("ascii").replace(/\0/g, "").trim();
-            if (name) entries.push({name, file: full_path, font_index});
-            font_index++;
-        }
-        off++;
+    const font = parse_font(buf);
+    if (font && font.name) {
+        return [{name: font.name, file: full_path, font_index: 0}];
     }
-    return entries;
+    return [];
 }
+
 
 // Build a flat index of all fonts in a directory (async, batched parallel reads).
 // Does NOT load cell data — call get_font() for that.
@@ -129,8 +99,12 @@ async function build_font_index(dir) {
 
 // Load full font data for a specific entry from the index.
 function get_font(entry) {
-    const fonts = parse_tdf_file(entry.file);
-    return fonts[entry.font_index] || null;
+    try {
+        const buf = fs.readFileSync(entry.file);
+        return parse_font(buf);
+    } catch (_) {
+        return null;
+    }
 }
 
 // Convert a font character's rows into a blocks object for doc.place().
