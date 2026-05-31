@@ -63,6 +63,30 @@ function parse_tdf_file(file_path) {
     return fonts;
 }
 
+// Validate that offset looks like a real font record start (not a 0x0C in cell data).
+// Real record: 0x0C + 12-byte name + 2 pad + type (0-2) + spacing (0-15) + blocksize (0-20)
+function is_valid_font_header(buf, off) {
+    if (off + 22 > buf.length) return false;
+    if (buf[off] !== 0x0C) return false;
+    // Skip if name looks like binary junk: check for too many non-printable chars
+    let printable = 0;
+    for (let i = off + 1; i < off + 13; i++) {
+        const b = buf[i];
+        if ((b >= 32 && b < 127) || b === 0) printable++;
+    }
+    if (printable < 4) return false; // at least 4 printable chars in a 12-byte name
+    // Type should be 0, 1, or 2
+    const type = buf[off + 17];
+    if (type > 2) return false;
+    // Spacing should be reasonable (0-15)
+    const spacing = buf[off + 18];
+    if (spacing > 15) return false;
+    // Block size should be reasonable (0-32)
+    const blocksize = buf[off + 19];
+    if (blocksize > 32) return false;
+    return true;
+}
+
 // Scan one buffer for font name entries (no cell data parsed).
 function scan_names_from_buf(buf, full_path) {
     if (buf.length < TDF_SIG.length) return [];
@@ -70,30 +94,35 @@ function scan_names_from_buf(buf, full_path) {
     const entries = [];
     let off = 24, font_index = 0;
     while (off < buf.length) {
-        if (buf[off] !== 0x0C) { off++; continue; }
-        const name = buf.slice(off + 1, off + 13).toString("ascii").replace(/\0/g, "").trim();
-        if (name) entries.push({name, file: full_path, font_index});
-        font_index++;
+        if (is_valid_font_header(buf, off)) {
+            const name = buf.slice(off + 1, off + 13).toString("ascii").replace(/\0/g, "").trim();
+            if (name) entries.push({name, file: full_path, font_index});
+            font_index++;
+        }
         off++;
-        while (off < buf.length && buf[off] !== 0x0C) off++;
     }
     return entries;
 }
 
-// Build a flat index of all fonts in a directory (async, parallel reads).
+// Build a flat index of all fonts in a directory (async, batched parallel reads).
 // Does NOT load cell data — call get_font() for that.
 async function build_font_index(dir) {
     let files;
     try { files = await fs.promises.readdir(dir); } catch (_) { return []; }
     const tdf_files = files.filter(f => path.extname(f).toLowerCase() === ".tdf");
-    const results = await Promise.all(tdf_files.map(async (f) => {
-        const full = path.join(dir, f);
-        try {
-            const buf = await fs.promises.readFile(full);
-            return scan_names_from_buf(buf, full);
-        } catch (_) { return []; }
-    }));
-    const index = results.flat();
+    const index = [];
+    const batch_size = 50;
+    for (let i = 0; i < tdf_files.length; i += batch_size) {
+        const batch = tdf_files.slice(i, i + batch_size);
+        const results = await Promise.all(batch.map(async (f) => {
+            const full = path.join(dir, f);
+            try {
+                const buf = await fs.promises.readFile(full);
+                return scan_names_from_buf(buf, full);
+            } catch (_) { return []; }
+        }));
+        index.push(...results.flat());
+    }
     index.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     return index;
 }
