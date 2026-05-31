@@ -436,6 +436,11 @@ if (win32 && prefs.get("ignore_hdpi")) {
     electron.app.commandLine.appendSwitch("force-device-scale-factor", "1");
 }
 
+if (win32) {
+    electron.app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
+    electron.app.commandLine.appendSwitch("disable-gpu-program-cache");
+}
+
 if (darwin) {
     electron.systemPreferences.setUserDefault("NSDisabledDictationMenuItem", "boolean", true);
     electron.systemPreferences.setUserDefault("NSDisabledCharacterPaletteMenuItem", "boolean", true);
