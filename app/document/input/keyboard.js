@@ -322,8 +322,21 @@ class KeyboardEvent extends events.EventEmitter {
     }
 
     keydown(event) {
-        if (document.activeElement && document.activeElement.contentEditable === "true" && document.activeElement !== this.chat_input) return;
-        if (document.activeElement == this.chat_input) {
+        const active = document.activeElement;
+
+        // Check if focus is inside the font picker dialog
+        const font_dialog = document.getElementById("font_picker_dialog");
+        if (font_dialog && !font_dialog.classList.contains("hidden")) {
+            if (font_dialog.contains(active)) return;
+        }
+
+        // Don't process shortcuts if an INPUT or TEXTAREA has focus (except chat)
+        const is_input = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+        if (is_input && active !== this.chat_input) return;
+
+        // Don't process shortcuts if contentEditable element has focus
+        if (active && active.contentEditable === "true" && active !== this.chat_input) return;
+        if (active == this.chat_input) {
             if (event.code == "Enter" || event.code == "NumpadEnter" && this.chat_input.value){
                 this.chat(this.chat_input.value);
                 this.chat_input.value = "";

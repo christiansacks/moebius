@@ -5,6 +5,7 @@
     --preview-width: 300px;
     --chat-height: 0px;
     --layers-panel-height: 250px;
+    --font-panel-height: 80px;
 }
 #sidebar {
     float: left;
@@ -80,6 +81,167 @@ body.dark .tool.selected {
 }
 #move_reference_mode {
     background-image: url("../img/move_reference.svg");
+}
+#font_mode {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='3' y='18' font-family='serif' font-size='18' font-weight='bold' fill='%23ccc'%3EAa%3C/text%3E%3C/svg%3E");
+    background-size: 24px 24px;
+}
+
+/* ── Font panel (right side column, same column as layers) ───────────────── */
+#font_panel_resize_handle {
+    height: 6px;
+    cursor: ns-resize;
+    flex-shrink: 0;
+    background: transparent;
+}
+#font_panel_resize_handle:hover, #font_panel_resize_handle.active {
+    background: rgba(0,0,0,0.3);
+}
+#font_panel {
+    flex: 0 0 var(--font-panel-height);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--mid-color);
+    font-size: 11px;
+}
+#font_panel_header {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #ccc;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+#font_panel_inner {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+#font_current_name {
+    font-size: 11px;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#font_change_btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #ccc;
+    border-radius: 3px;
+    text-align: center;
+}
+#font_change_btn:hover { background: rgba(255,255,255,0.18); }
+#font_color_pickers { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa; }
+
+/* ── Font picker dialog ─────────────────────────────────────────────────── */
+#font_picker_dialog {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background: #1e2028;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    width: 760px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+#font_picker_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 13px;
+    font-weight: bold;
+    color: #ddd;
+}
+#font_picker_close {
+    cursor: pointer;
+    color: #888;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+#font_picker_close:hover { color: #fff; background: rgba(255,255,255,0.1); }
+#font_picker_body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    gap: 0;
+}
+#font_picker_left {
+    width: 200px;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid rgba(255,255,255,0.1);
+}
+#font_search {
+    margin: 8px;
+    padding: 5px 8px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 3px;
+    color: #ccc;
+    outline: none;
+}
+#font_picker_list {
+    flex: 1;
+    min-height: 0;
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+.font_list_item {
+    padding: 5px 12px;
+    font-size: 12px;
+    color: #bbb;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.font_list_item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+.font_list_item.selected { background: rgba(96,130,200,0.35); color: #fff; }
+#font_picker_right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    gap: 8px;
+    overflow: hidden;
+}
+#font_preview_text {
+    padding: 6px 10px;
+    font-size: 13px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 3px;
+    color: #eee;
+    outline: none;
+}
+#font_preview_canvas {
+    flex: 1;
+    background: #000;
+    border-radius: 3px;
+    image-rendering: pixelated;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 .tool.ghosted {
     opacity: 0.2;
@@ -433,6 +595,13 @@ body.dark #preview {
 }
 body.dark #layers_panel {
     background-color: var(--dark-mid-color);
+    border-color: var(--dark-border-color);
+}
+body.dark #font_panel {
+    background-color: var(--dark-mid-color);
+    border-color: var(--dark-border-color);
+}
+body.dark #font_panel_header {
     border-color: var(--dark-border-color);
 }
 body.dark #layers_header {

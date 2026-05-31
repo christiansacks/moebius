@@ -19,6 +19,8 @@ require("./document/tools/ellipse_filled");
 require("./document/tools/ellipse_outline");
 require("./document/tools/fill");
 require("./document/tools/sample");
+require("./document/tools/font");
+const font_panel = require("./document/ui/font_panel");
 
 doc.on("start_rendering", () => send_sync("show_rendering_modal"));
 doc.on("end_rendering", () => send("close_modal"));
@@ -42,6 +44,7 @@ doc.on("ready", () => {
     send("ready");
     tools.start(tools.modes.SELECT);
     layers_panel.init();
+    font_panel.init();
 });
 
 async function process_save(method = 'save', destroy_when_done = false, ignore_controlcharacters = false) {
@@ -200,6 +203,7 @@ on("connect_to_server", (event, {server, pass}) => doc.connect_to_server(server,
 on("backup_folder", (event, folder) => backup_folder = folder);
 on("use_backup", (event, value) => use_backup(value));
 on("show_layers_panel", (event, visible) => layers_panel.show_layers_panel(visible));
+on("font_open_picker", () => font_panel.open_picker());
 on("layer_add", () => doc.add_layer());
 on("layer_duplicate", () => doc.duplicate_layer());
 on("layer_delete", () => { if (doc.layers && doc.layers.length > 1) doc.delete_layer(doc.active_layer); });

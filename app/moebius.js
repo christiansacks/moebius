@@ -354,6 +354,24 @@ electron.ipcMain.on("show_controlcharacters", async (event, {id, method, destroy
     event.returnValue = true;
 });
 
+electron.ipcMain.on("get_pref", (event, {key}) => {
+    event.returnValue = prefs.get(key) || null;
+});
+
+electron.ipcMain.on("set_pref", (event, {key, value}) => {
+    prefs.set(key, value);
+});
+
+electron.ipcMain.on("open_dir_dialog", (event, {title}) => {
+    const result = electron.dialog.showOpenDialogSync({title, properties: ["openDirectory"]});
+    event.returnValue = (result && result[0]) || null;
+});
+
+electron.ipcMain.handle("build_font_index", async (event, {dir}) => {
+    const {build_font_index} = require("./libtextmode/tdf");
+    return build_font_index(dir);
+});
+
 if (darwin) {
     electron.app.on("will-finish-launching", (event) => {
         electron.app.on("open-file", (event, file) => {
@@ -367,6 +385,28 @@ if (darwin) {
     });
     electron.app.on("activate", (event) => {
         if (!has_documents_open()) show_splash_screen();
+    });
+}
+
+// Single-instance lock: route subsequent launches into this process instead of
+// spawning a new Electron process. Eliminates the Windows multi-instance startup
+// delay caused by competing locks on the GPU cache / user-data directory.
+// Also benefits Linux/macOS by reducing memory and process startup overhead.
+const got_single_instance_lock = electron.app.requestSingleInstanceLock();
+if (!got_single_instance_lock) {
+    electron.app.quit();
+} else {
+    electron.app.on("second-instance", (event, argv_new) => {
+        // A second launch was attempted — open its files in this process instead.
+        const files = require("minimist")(argv_new)._.filter(
+            (file, index) => index > 0 && fs.existsSync(file) && fs.statSync(file).isFile()
+        );
+        if (files.length > 0) {
+            files.forEach((file) => open_file(file));
+        } else {
+            // No file argument — open a new blank document
+            new_document();
+        }
     });
 }
 
