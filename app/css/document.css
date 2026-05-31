@@ -5,6 +5,7 @@
     --preview-width: 300px;
     --chat-height: 0px;
     --layers-panel-height: 250px;
+    --font-panel-height: 80px;
 }
 #sidebar {
     float: left;
@@ -87,12 +88,23 @@ body.dark .tool.selected {
 }
 
 /* ── Font panel (right side column, same column as layers) ───────────────── */
-#font_panel {
+#font_panel_resize_handle {
+    height: 6px;
+    cursor: ns-resize;
     flex-shrink: 0;
+    background: transparent;
+}
+#font_panel_resize_handle:hover, #font_panel_resize_handle.active {
+    background: rgba(0,0,0,0.3);
+}
+#font_panel {
+    flex: 0 0 var(--font-panel-height);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    border-top: 1px solid rgba(255,255,255,0.08);
-    background: var(--panel-bg, #23252e);
+    border-top: 1px solid var(--border-color);
+    background-color: var(--mid-color);
+    font-size: 11px;
 }
 #font_panel_header {
     display: flex;

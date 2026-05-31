@@ -154,14 +154,13 @@ async function render_picker_preview() {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const scale = Math.min(canvas.width / src.width, canvas.height / src.height, 2);
-    const dw = Math.max(1, Math.floor(src.width  * scale));
+    // Scale to fill full width of the preview canvas
+    const scale = canvas.width / src.width;
+    const dw = canvas.width;
     const dh = Math.max(1, Math.floor(src.height * scale));
-    const dx = Math.floor((canvas.width  - dw) / 2);
-    const dy = Math.floor((canvas.height - dh) / 2);
 
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(src, dx, dy, dw, dh);
+    ctx.drawImage(src, 0, 0, dw, dh);
 }
 
 // ── Font list ─────────────────────────────────────────────────────────────────
@@ -229,11 +228,35 @@ function update_color_pickers_visibility() {
     if (pickers) pickers.classList.toggle("hidden", is_color_font());
 }
 
+// ── Arrow key navigation ──────────────────────────────────────────────────────
+
+function navigate_list(dir) {
+    if (!font_index || font_index.length === 0) return;
+    const search_val = ($("font_search") && $("font_search").value) ? $("font_search").value.toLowerCase() : "";
+    const visible = search_val ? font_index.filter(e => e.name.toLowerCase().includes(search_val)) : font_index;
+    if (visible.length === 0) return;
+
+    let idx = current_entry ? visible.indexOf(current_entry) : -1;
+    idx = Math.max(0, Math.min(visible.length - 1, idx + dir));
+    select_entry(visible[idx]);
+
+    // Scroll selected item into view
+    const list = $("font_picker_list");
+    if (list) {
+        const selected = list.querySelector(".font_list_item.selected");
+        if (selected) selected.scrollIntoView({block: "nearest"});
+    }
+}
+
 // ── Dialog show/hide ──────────────────────────────────────────────────────────
 
 async function show_font_picker() {
     const dialog = $("font_picker_dialog");
     if (!dialog) return;
+    // Reset to centered position each time it opens
+    dialog.style.left = "";
+    dialog.style.top = "";
+    dialog.style.transform = "";
     dialog.classList.remove("hidden");
     dialog_open = true;
     const preview_text = $("font_preview_text");
@@ -260,6 +283,9 @@ function init() {
         search.addEventListener("keydown", (e) => {
             e.stopPropagation();
             e.stopImmediatePropagation();
+            if (e.key === "ArrowDown") { e.preventDefault(); navigate_list(1); }
+            else if (e.key === "ArrowUp") { e.preventDefault(); navigate_list(-1); }
+            else if (e.key === "Escape") { e.preventDefault(); hide_font_picker(); }
         }, true);
     }
 
@@ -288,34 +314,93 @@ function init() {
         preview_text.placeholder = "Moebius Rulez";
     }
 
-    // Dialog dragging by header
+    // Dialog dragging by header (exclude close/browse buttons)
     let drag_state = null;
     const header = $("font_picker_header");
-    const dialog = $("font_picker_dialog");
-    if (header && dialog) {
+    const dialog_el = $("font_picker_dialog");
+    if (header && dialog_el) {
         header.addEventListener("mousedown", (e) => {
+            if (e.button !== 0) return;
+            if (e.target.closest("#font_picker_close, #font_browse_btn")) return;
             e.preventDefault();
-            const rect = dialog.getBoundingClientRect();
-            // Remove transform to allow left/top positioning
-            dialog.style.transform = "none";
+            const rect = dialog_el.getBoundingClientRect();
             drag_state = {
                 start_x: e.clientX,
                 start_y: e.clientY,
                 dialog_x: rect.left,
                 dialog_y: rect.top,
+                moved: false,
             };
         });
         document.addEventListener("mousemove", (e) => {
             if (!drag_state) return;
             const dx = e.clientX - drag_state.start_x;
             const dy = e.clientY - drag_state.start_y;
-            dialog.style.left = (drag_state.dialog_x + dx) + "px";
-            dialog.style.top = (drag_state.dialog_y + dy) + "px";
+            if (!drag_state.moved) {
+                // First move — pin to absolute position, remove centering transform
+                dialog_el.style.transform = "none";
+                drag_state.moved = true;
+            }
+            dialog_el.style.left = (drag_state.dialog_x + dx) + "px";
+            dialog_el.style.top = (drag_state.dialog_y + dy) + "px";
+        });
+        document.addEventListener("mouseup", () => { drag_state = null; });
+    }
+
+    // Font panel resize handle — drag up/down to resize (same as layers panel)
+    const fp_resize = $("font_panel_resize_handle");
+    if (fp_resize) {
+        let fp_dragging = false, fp_drag_start_y = 0, fp_drag_start_h = 0;
+        fp_resize.addEventListener("mousedown", (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            fp_dragging = true;
+            fp_drag_start_y = e.clientY;
+            const cur = getComputedStyle(document.documentElement).getPropertyValue("--font-panel-height");
+            fp_drag_start_h = parseInt(cur) || 80;
+            document.body.style.userSelect = "none";
+            fp_resize.classList.add("active");
+        });
+        document.addEventListener("mousemove", (e) => {
+            if (!fp_dragging) return;
+            const delta = fp_drag_start_y - e.clientY;
+            const new_h = Math.max(60, Math.min(400, fp_drag_start_h + delta));
+            document.documentElement.style.setProperty("--font-panel-height", new_h + "px");
         });
         document.addEventListener("mouseup", () => {
-            drag_state = null;
+            if (fp_dragging) {
+                fp_dragging = false;
+                document.body.style.userSelect = "";
+                fp_resize.classList.remove("active");
+            }
         });
     }
+
+    // Font panel header — click to toggle above/below layers
+    const fp_header_label = $("font_panel_header");
+    const fp = $("font_panel");
+    const lp = $("layers_panel");
+    if (fp_header_label && fp && lp) {
+        fp_header_label.style.cursor = "pointer";
+        fp_header_label.title = "Click to move above/below Layers";
+        fp_header_label.addEventListener("click", () => {
+            const fp_rect = fp.getBoundingClientRect();
+            const lp_rect = lp.getBoundingClientRect();
+            if (fp_rect.top > lp_rect.top) {
+                fp.parentNode.insertBefore(fp, lp);
+            } else {
+                fp.parentNode.insertBefore(fp, lp.nextSibling);
+            }
+        });
+    }
+
+    // Arrow key navigation — document-level capture so it works regardless of focus
+    document.addEventListener("keydown", (e) => {
+        if (!dialog_open) return;
+        if (e.key === "ArrowDown") { e.preventDefault(); e.stopPropagation(); navigate_list(1); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); e.stopPropagation(); navigate_list(-1); }
+        else if (e.key === "Escape") { hide_font_picker(); }
+    }, true);
 
     // Re-render preview when palette changes (affects outline/block fonts)
     palette.on("change", () => {
