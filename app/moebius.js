@@ -396,16 +396,23 @@ const got_single_instance_lock = electron.app.requestSingleInstanceLock();
 if (!got_single_instance_lock) {
     electron.app.quit();
 } else {
-    electron.app.on("second-instance", (event, argv_new) => {
+    electron.app.on("second-instance", (event, argv_new, working_dir) => {
         // A second launch was attempted — open its files in this process instead.
-        const files = require("minimist")(argv_new)._.filter(
-            (file, index) => index > 0 && fs.existsSync(file) && fs.statSync(file).isFile()
-        );
+        // Bypass minimist: on Windows, packaged-app paths are absolute and may be
+        // preceded by Squirrel/Electron internal flags that confuse minimist parsing.
+        const files = argv_new.slice(1).reduce((acc, arg) => {
+            if (arg.startsWith("-")) return acc;
+            const resolved = path.isAbsolute(arg) ? arg : path.join(working_dir, arg);
+            try { if (fs.statSync(resolved).isFile()) acc.push(resolved); } catch (_) {}
+            return acc;
+        }, []);
         if (files.length > 0) {
             files.forEach((file) => open_file(file));
         } else {
-            // No file argument — open a new blank document
-            new_document();
+            // No resolvable file arg — open a blank document only if no file-like
+            // args were present at all (i.e. user launched the app, not a file).
+            const had_file_args = argv_new.slice(1).some(a => !a.startsWith("-") && a !== ".");
+            if (!had_file_args) new_document();
         }
     });
 }
