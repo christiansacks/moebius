@@ -77,9 +77,18 @@ function scan_names_from_buf(buf, full_path) {
 // Build a flat index of all fonts in a directory (async, batched parallel reads).
 // Does NOT load cell data — call get_font() for that.
 async function build_font_index(dir) {
-    let files;
-    try { files = await fs.promises.readdir(dir); } catch (_) { return []; }
-    const tdf_files = files.filter(f => path.extname(f).toLowerCase() === ".tdf");
+    let entries;
+    try { entries = await fs.promises.readdir(dir, {withFileTypes: true}); } catch (_) { return []; }
+
+    const subdirs = entries
+        .filter(e => e.isDirectory() && !e.name.startsWith("."))
+        .map(e => ({name: e.name, file: path.join(dir, e.name), is_dir: true}))
+        .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+
+    const tdf_files = entries
+        .filter(e => !e.isDirectory() && path.extname(e.name).toLowerCase() === ".tdf")
+        .map(e => e.name);
+
     const index = [];
     const batch_size = 50;
     for (let i = 0; i < tdf_files.length; i += batch_size) {
@@ -94,7 +103,7 @@ async function build_font_index(dir) {
         index.push(...results.flat());
     }
     index.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-    return index;
+    return [...subdirs, ...index];
 }
 
 // Load full font data for a specific entry from the index.

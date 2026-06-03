@@ -219,6 +219,8 @@ body.dark .tool.selected {
 }
 .font_list_item:hover { background: rgba(255,255,255,0.07); color: #fff; }
 .font_list_item.selected { background: rgba(96,130,200,0.35); color: #fff; }
+.font_list_item.font_dir_item { color: #7eb8f7; }
+.font_list_item.font_dir_item:hover { color: #fff; }
 #font_picker_right {
     flex: 1;
     display: flex;

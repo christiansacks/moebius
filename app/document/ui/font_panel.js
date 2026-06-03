@@ -9,6 +9,7 @@ const palette = require("../palette");
 
 // TDF directory comes from prefs; user can change it via Browse button
 let tdf_dir = send_sync("get_pref", {key: "tdf_dir"}) || "";
+let tdf_root = tdf_dir; // user's chosen base folder; tdf_dir changes as user navigates
 
 // Index is built async in the main process to avoid blocking the renderer
 let font_index = null;
@@ -190,7 +191,19 @@ async function render_font_list(filter) {
     const idx = await ensure_index();
 
     list.innerHTML = "";
-    if (idx.length === 0) {
+
+    if (tdf_dir !== tdf_root) {
+        const el = document.createElement("div");
+        el.className = "font_list_item font_dir_item";
+        el.textContent = "[..]";
+        el.addEventListener("mousedown", (e) => { e.stopPropagation(); navigate_to(path.dirname(tdf_dir)); });
+        list.appendChild(el);
+    }
+
+    const lc = (filter || "").toLowerCase();
+    const matches = lc ? idx.filter(e => !e.is_dir && e.name.toLowerCase().includes(lc)) : idx;
+
+    if (matches.length === 0 && !lc && tdf_dir === tdf_root) {
         const msg = document.createElement("div");
         msg.className = "font_list_item";
         msg.style.color = "#666";
@@ -200,18 +213,26 @@ async function render_font_list(filter) {
         return;
     }
 
-    const lc = (filter || "").toLowerCase();
-    const matches = lc ? idx.filter(e => e.name.toLowerCase().includes(lc)) : idx;
     for (const entry of matches) {
         const el = document.createElement("div");
-        el.className = "font_list_item" + (entry === current_entry ? " selected" : "");
-        el.textContent = entry.name;
-        el.addEventListener("mousedown", () => select_entry(entry));
+        el.className = "font_list_item" + (entry === current_entry ? " selected" : "") + (entry.is_dir ? " font_dir_item" : "");
+        el.textContent = entry.is_dir ? `[${entry.name}]` : entry.name;
+        el.addEventListener("mousedown", (e) => { if (entry.is_dir) e.stopPropagation(); select_entry(entry); });
         list.appendChild(el);
     }
 }
 
+function navigate_to(dir) {
+    tdf_dir = dir;
+    font_index = null;
+    index_loading = false;
+    const search = $("font_search");
+    if (search) search.value = "";
+    render_font_list("");
+}
+
 function select_entry(entry) {
+    if (entry.is_dir) { navigate_to(entry.file); return; }
     current_entry = entry;
     const font = get_font(entry);
     if (!font) return;
@@ -240,7 +261,7 @@ function update_color_pickers_visibility() {
 function navigate_list(dir) {
     if (!font_index || font_index.length === 0) return;
     const search_val = ($("font_search") && $("font_search").value) ? $("font_search").value.toLowerCase() : "";
-    const visible = search_val ? font_index.filter(e => e.name.toLowerCase().includes(search_val)) : font_index;
+    const visible = (search_val ? font_index.filter(e => !e.is_dir && e.name.toLowerCase().includes(search_val)) : font_index.filter(e => !e.is_dir));
     if (visible.length === 0) return;
 
     let idx = current_entry ? visible.indexOf(current_entry) : -1;
@@ -303,6 +324,7 @@ function init() {
     if (browse_btn) browse_btn.addEventListener("click", async () => {
         const result = send_sync("open_dir_dialog", {title: "Select TDF Fonts Folder"});
         if (result) {
+            tdf_root = result;
             tdf_dir = result;
             font_index = null;
             index_loading = false;
@@ -437,9 +459,12 @@ function init() {
     // Dismiss dialog on outside click
     document.addEventListener("mousedown", (e) => {
         const dialog = $("font_picker_dialog");
-        if (dialog && !dialog.classList.contains("hidden") && !dialog.contains(e.target) && e.target !== $("font_change_btn")) {
-            hide_font_picker();
-        }
+        if (!dialog || dialog.classList.contains("hidden")) return;
+        if (e.target === $("font_change_btn")) return;
+        const rect = dialog.getBoundingClientRect();
+        const inside = e.clientX >= rect.left && e.clientX <= rect.right &&
+                       e.clientY >= rect.top  && e.clientY <= rect.bottom;
+        if (!inside) hide_font_picker();
     });
 }
 
