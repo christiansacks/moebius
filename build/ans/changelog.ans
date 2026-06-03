@@ -1,14 +1,30 @@
 [0m
                  [1mChangelog[0m
 
+           Ver. 1.5.2 2026-06-03
+
+ [1mFix: [0mFree text mode can select other
+   tools instead of blocking single char
+   hotkeys
+   
+ [1mFix: [0mSome fonts can be user coloured
+   allow colours to be used for those set
+   by the user
+
+                    	 
+
            Ver. 1.5.1 2026-06-01
 
  [1mFeature: [0mPlay OG ANSImations
    that were created in TheDraw
 
+                    	 
+
            Ver. 1.5.0 2026-06-01
 
  [1mFeature: [0mANSImations!
+
+                    	 
 
            Ver. 1.4.2 2026-05-31
 
@@ -19,6 +35,8 @@
    longer to load (~12 seconds) due
    to bumped electron dependencies
 
+                    	 
+
            Ver. 1.4.1 2026-05-30
 
  [1mFeature: [0mDrag-to-reorder layers
@@ -26,46 +44,64 @@
    
  [1mFix: [0mresize-then-save silent failure
 
+                    	 
+
            Ver. 1.4.0 2026-05-29
 
  [1mFeature: [0mAdd layers to working document
    and allow saving to a new file format
    .mob with all the layers preserved.
 
+                    	 
+
            Ver. 1.3.2 2026-05-28
 
  [1mFeature: [0mAllow opening of online art
    packs from 16colo.rs
+
+                    	 
 
            Ver. 1.3.1 2026-05-28
 
  [1mFix: [0mAllow file open dialog to navigate
    above C: drive in Windows.
 
+                    	 
+
            Ver. 1.3.0 2026-05-28
 
  [1mFeature: [0madd Synchronet Ctrl-A (.msg)
    read/write support.
+
+                    	 
 
            Ver. 1.2.9 2026-05-15
 
  [1mFeature: [0mAdd image preview to the
    file load dialog.
 
+                    	 
+
            Ver. 1.2.8 2026-05-15
 
  [1mFix: [0mUndetected ansi width makes
    file load with odd outcomes.
+
+                    	 
 
            Ver. 1.2.7 2026-05-05
 
  [1mFix: [0mbright-to-normal colour
    bleed in extended ANSI export.
 
+                    	 
+
            Ver. 1.2.6 2026-04-26
 
  [1mFix: [0mBump to v1.2.6
    Fix zoom out preview
+
+                    	 
 
            Ver. 1.2.5 2026-04-26
 
@@ -74,6 +110,8 @@
    utf8ans colour bleed and leading newline
    Make zoom only zoom canvas and not the
    whole UI
+
+                    	 
 
            Ver. 1.2.4 2026-04-22
 
