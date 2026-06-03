@@ -410,12 +410,14 @@ function init() {
     }, true);
 
     // Re-render preview when palette changes (affects outline/block fonts)
-    palette.on("change", () => {
+    function on_palette_change() {
         if (!is_color_font()) {
             set_colors(palette.fg, palette.bg, palette.fg_rgb || null, palette.bg_rgb || null);
             render_picker_preview();
         }
-    });
+    }
+    palette.on("set_fg", on_palette_change);
+    palette.on("set_bg", on_palette_change);
 
     font_tool.on("enabled", (enabled) => {
         const panel = $("font_panel");
