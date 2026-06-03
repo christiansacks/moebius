@@ -21,11 +21,11 @@ let dialog_open = false; // flag for keyboard handler
 
 function $(id) { return document.getElementById(id); }
 
-async function ensure_index() {
+async function ensure_index(silent = false) {
     if (font_index) return font_index;
     if (!tdf_dir || index_loading) return [];
     index_loading = true;
-    show_list_loading();
+    if (!silent) show_list_loading();
     try {
         font_index = await electron.ipcRenderer.invoke("build_font_index", {dir: tdf_dir});
     } catch (_) {
@@ -173,7 +173,7 @@ async function render_picker_preview() {
 
 // ── Font list ─────────────────────────────────────────────────────────────────
 
-async function render_font_list(filter) {
+async function render_font_list(filter, silent = false) {
     const list = $("font_picker_list");
     if (!list) return;
 
@@ -188,7 +188,7 @@ async function render_font_list(filter) {
         return;
     }
 
-    const idx = await ensure_index();
+    const idx = await ensure_index(silent);
 
     list.innerHTML = "";
 
@@ -228,7 +228,7 @@ function navigate_to(dir) {
     index_loading = false;
     const search = $("font_search");
     if (search) search.value = "";
-    render_font_list("");
+    render_font_list("", true);
 }
 
 function select_entry(entry) {
@@ -290,7 +290,12 @@ async function show_font_picker() {
     const preview_text = $("font_preview_text");
     if (preview_text) preview_text.focus();
     await render_font_list($("font_search").value || "");
-    render_picker_preview();
+    if (!current_entry && font_index) {
+        const first_font = font_index.find(e => !e.is_dir);
+        if (first_font) select_entry(first_font);
+    } else {
+        render_picker_preview();
+    }
 }
 
 function hide_font_picker() {
