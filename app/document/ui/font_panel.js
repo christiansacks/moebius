@@ -48,7 +48,7 @@ function show_list_loading() {
 
 // ── Preview doc builder ───────────────────────────────────────────────────────
 
-function build_font_preview_doc(text, font, fg, bg) {
+function build_font_preview_doc(text, font, fg, bg, fg_rgb, bg_rgb) {
     if (!font || !text) return null;
     const block_size = font.block_size || 8;
     const spacing    = font.spacing    || 0;
@@ -86,11 +86,16 @@ function build_font_preview_doc(text, font, fg, bg) {
                 const cell = char_rows[r][c];
                 const idx  = r * columns + x + c;
                 if (idx < data.length) {
-                    data[idx] = {
+                    const block = {
                         code: cell.code,
                         fg:   is_color ? cell.fg : fg,
                         bg:   is_color ? cell.bg : bg,
                     };
+                    if (!is_color) {
+                        if (fg_rgb) block.fg_rgb = fg_rgb;
+                        if (bg_rgb) block.bg_rgb = bg_rgb;
+                    }
+                    data[idx] = block;
                 }
             }
         }
@@ -101,13 +106,13 @@ function build_font_preview_doc(text, font, fg, bg) {
         columns,
         rows,
         data,
-        palette:        ega,
-        font_name:      "IBM VGA",
-        use_9px_font:   false,
-        ice_colors:     false,
-        extended_colors: false,
-        xterm_base16:   false,
-        c64_background: undefined,
+        palette:         ega,
+        font_name:       "IBM VGA",
+        use_9px_font:    false,
+        ice_colors:      false,
+        extended_colors: !!(fg_rgb || bg_rgb),
+        xterm_base16:    false,
+        c64_background:  undefined,
     };
 }
 
@@ -136,7 +141,9 @@ async function render_picker_preview() {
 
     const fg = palette.fg ?? 7;
     const bg = palette.bg ?? 0;
-    const preview_doc = build_font_preview_doc(text, current_font, fg, bg);
+    const fg_rgb = palette.fg_rgb || null;
+    const bg_rgb = palette.bg_rgb || null;
+    const preview_doc = build_font_preview_doc(text, current_font, fg, bg, fg_rgb, bg_rgb);
 
     if (!preview_doc) {
         ctx.fillStyle = "#000";
@@ -405,7 +412,7 @@ function init() {
     // Re-render preview when palette changes (affects outline/block fonts)
     palette.on("change", () => {
         if (!is_color_font()) {
-            set_colors(palette.fg, palette.bg);
+            set_colors(palette.fg, palette.bg, palette.fg_rgb || null, palette.bg_rgb || null);
             render_picker_preview();
         }
     });
@@ -414,7 +421,7 @@ function init() {
         const panel = $("font_panel");
         if (panel) panel.classList.toggle("hidden", !enabled);
         if (!enabled) hide_font_picker();
-        if (enabled && !is_color_font()) set_colors(palette.fg ?? 7, palette.bg ?? 0);
+        if (enabled && !is_color_font()) set_colors(palette.fg ?? 7, palette.bg ?? 0, palette.fg_rgb || null, palette.bg_rgb || null);
     });
 
     font_tool.on("font_changed", (font) => {
@@ -422,7 +429,7 @@ function init() {
         update_panel_name(font ? font.name : "No font selected");
         update_color_pickers_visibility();
         send("update_font_menu", {font_name: font ? font.name : null});
-        if (font && !is_color_font()) set_colors(palette.fg ?? 7, palette.bg ?? 0);
+        if (font && !is_color_font()) set_colors(palette.fg ?? 7, palette.bg ?? 0, palette.fg_rgb || null, palette.bg_rgb || null);
     });
 
     // Dismiss dialog on outside click

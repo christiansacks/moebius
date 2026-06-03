@@ -110,18 +110,23 @@ function get_font(entry) {
 // Convert a font character's rows into a blocks object for doc.place().
 // Returns {columns, rows, data: [{code, fg, bg}|null]}
 // For outline/block fonts (type != 2), fg/bg come from the caller's palette selection.
-function font_char_to_blocks(rows, block_size, override_fg, override_bg, is_color) {
+function font_char_to_blocks(rows, block_size, override_fg, override_bg, is_color, override_fg_rgb, override_bg_rgb) {
     const width = Math.max(...rows.map(r => r.length));
     const height = block_size || rows.length;
     const data = new Array(width * height).fill(null);
     for (let r = 0; r < rows.length && r < height; r++) {
         for (let c = 0; c < rows[r].length; c++) {
             const cell = rows[r][c];
-            data[r * width + c] = {
+            const block = {
                 code: cell.code,
                 fg: is_color ? cell.fg : override_fg,
                 bg: is_color ? cell.bg : override_bg,
             };
+            if (!is_color) {
+                if (override_fg_rgb) block.fg_rgb = override_fg_rgb;
+                if (override_bg_rgb) block.bg_rgb = override_bg_rgb;
+            }
+            data[r * width + c] = block;
         }
     }
     return {columns: width, rows: height, data};

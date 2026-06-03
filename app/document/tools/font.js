@@ -13,7 +13,7 @@ let cursor_x = 0, cursor_y = 0;
 let line_origin_x = 0;
 let line_height = 0;
 let current_font = null;
-let override_fg = 7, override_bg = 0;
+let override_fg = 7, override_bg = 0, override_fg_rgb = null, override_bg_rgb = null;
 let stamp_history = [];
 
 // Visual cursor overlay
@@ -29,7 +29,7 @@ function set_font(font) {
     font_tool.emit("font_changed", font);
 }
 
-function set_colors(fg, bg) { override_fg = fg; override_bg = bg; }
+function set_colors(fg, bg, fg_rgb = null, bg_rgb = null) { override_fg = fg; override_bg = bg; override_fg_rgb = fg_rgb; override_bg_rgb = bg_rgb; }
 
 function get_char_rows(char_code) {
     if (!current_font) return null;
@@ -97,7 +97,7 @@ function stamp_char(char_code) {
     }
     if (cursor_y + height > doc.rows) return;
 
-    const blocks = font_char_to_blocks(rows, height, override_fg, override_bg, is_color_font());
+    const blocks = font_char_to_blocks(rows, height, override_fg, override_bg, is_color_font(), override_fg_rgb, override_bg_rgb);
     doc.place(blocks, cursor_x, cursor_y);
 
     stamp_history.push({x: cursor_x, y: cursor_y, columns: width, rows: height});
