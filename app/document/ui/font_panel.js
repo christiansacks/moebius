@@ -414,6 +414,7 @@ function init() {
         const panel = $("font_panel");
         if (panel) panel.classList.toggle("hidden", !enabled);
         if (!enabled) hide_font_picker();
+        if (enabled && !is_color_font()) set_colors(palette.fg ?? 7, palette.bg ?? 0);
     });
 
     font_tool.on("font_changed", (font) => {
@@ -421,6 +422,7 @@ function init() {
         update_panel_name(font ? font.name : "No font selected");
         update_color_pickers_visibility();
         send("update_font_menu", {font_name: font ? font.name : null});
+        if (font && !is_color_font()) set_colors(palette.fg ?? 7, palette.bg ?? 0);
     });
 
     // Dismiss dialog on outside click
