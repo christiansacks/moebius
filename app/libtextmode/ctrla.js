@@ -159,7 +159,7 @@ function encode_as_ctrla(doc, save_without_sauce) {
 
         for (let x = 0; x <= end_col; x++) {
             const block = doc.data[y * doc.columns + x] || {code: 32, fg: 7, bg: 0};
-            emit_attr(block.fg || 7, block.bg || 0);
+            emit_attr(block.fg ?? 7, block.bg ?? 0);
             let code = block.code;
             switch (code) {
                 case 10: code = 9; break;
