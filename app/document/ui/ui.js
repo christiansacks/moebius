@@ -431,9 +431,9 @@ class Tools extends events.EventEmitter {
         this.modes = {SELECT: 0, BRUSH: 1, SHIFTER: 2, LINE: 3, RECTANGLE_OUTLINE: 4, RECTANGLE_FILLED: 5, ELLIPSE_OUTLINE: 6, ELLIPSE_FILLED: 7, FILL: 8, SAMPLE: 9, MOVE_REFERENCE: 10, FONT: 11};
         tools_instance = this;
         on("change_to_select_mode", (event) => this.start(this.modes.SELECT));
-        on("change_to_brush_mode", (event) => this.start(this.modes.BRUSH));
-        on("change_to_shifter_mode", (event) => this.start(this.modes.SHIFTER));
-        on("change_to_fill_mode", (event) => this.start(this.modes.FILL));
+        on("change_to_brush_mode", (event) => { if (this.mode !== this.modes.SELECT) this.start(this.modes.BRUSH); });
+        on("change_to_shifter_mode", (event) => { if (this.mode !== this.modes.SELECT) this.start(this.modes.SHIFTER); });
+        on("change_to_fill_mode", (event) => { if (this.mode !== this.modes.SELECT) this.start(this.modes.FILL); });
         this.on("start", (mode) => {
             const ref = document.getElementById("reference_image");
             if (mode === this.modes.MOVE_REFERENCE) {
