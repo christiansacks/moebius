@@ -797,49 +797,161 @@ function cursor_move_buf(row, col) {
     return Buffer.from(`\x1b[${row};${col}H`, "ascii");
 }
 
+function cells_equal(a, b) {
+    const def = {fg: 7, bg: 0, code: 32};
+    const A = a || def, B = b || def;
+    if (A.code !== B.code || A.fg !== B.fg || A.bg !== B.bg) return false;
+    if (A.fg_idx !== B.fg_idx || A.bg_idx !== B.bg_idx) return false;
+    const rgb_eq = (x, y) => (!x && !y) || (x && y && x.r === y.r && x.g === y.g && x.b === y.b);
+    return rgb_eq(A.fg_rgb, B.fg_rgb) && rgb_eq(A.bg_rgb, B.bg_rgb);
+}
+
+// Generate a differential sub-frame: only cells that changed vs prev_data.
+// No frame boundary marker — character events stream continuously, matching TheDraw .ANS output.
+function generate_diff_frame_stream(prev_data, curr_data, columns, rows, opts) {
+    const {ice_colors = false, extended_colors = false, c64_background} = opts || {};
+    const parts = [];
+    for (let row = 0; row < rows; row++) {
+        const base = row * columns;
+        let first = -1, last = -1;
+        for (let col = 0; col < columns; col++) {
+            if (!cells_equal(prev_data[base + col], curr_data[base + col])) {
+                if (first === -1) first = col;
+                last = col;
+            }
+        }
+        if (first === -1) continue;
+        parts.push(cursor_move_buf(row + 1, first + 1));
+        const span = last - first + 1;
+        const row_doc = {
+            columns: span, rows: 1,
+            data: curr_data.slice(base + first, base + first + span),
+            ice_colors, extended_colors, c64_background,
+        };
+        const enc = encode_as_ansi(row_doc, true);
+        parts.push(Buffer.isBuffer(enc) ? enc : Buffer.from(enc, "binary"));
+    }
+    return Buffer.concat(parts);
+}
+
+// Emit non-black cells from data in the given index order, preceded by ESC[40m+ESC[2J.
+// Skips default black spaces since the screen is already black after the clear.
+function emit_cells_ordered(data, columns, rows, opts, indices) {
+    const {ice_colors = false, extended_colors = false, c64_background} = opts || {};
+    const parts = [Buffer.from([27, 91, 52, 48, 109, 27, 91, 50, 74])]; // ESC[40m + ESC[2J
+    for (const i of indices) {
+        const cell = data[i];
+        if (!cell || (cell.code === 32 && cell.bg === 0 && !cell.bg_rgb && cell.bg_idx === undefined)) continue;
+        parts.push(cursor_move_buf(Math.floor(i / columns) + 1, (i % columns) + 1));
+        const enc = encode_as_ansi({columns: 1, rows: 1, data: [cell], ice_colors, extended_colors, c64_background}, true);
+        parts.push(Buffer.isBuffer(enc) ? enc : Buffer.from(enc, "binary"));
+    }
+    return Buffer.concat(parts);
+}
+
 // Generate a streaming ANSI byte sequence for a single frame with the chosen reveal effect.
-// effect: "instant" (ESC[2J + full frame) | "inchworm" (row-by-row with cursor positioning)
 function generate_frame_stream(frame, columns, rows, opts, effect) {
     const {ice_colors = false, extended_colors = false, c64_background} = opts || {};
     const data = composite_layers(frame.layers, columns, rows, extended_colors);
     const parts = [];
+    const clear = Buffer.from([27, 91, 52, 48, 109, 27, 91, 50, 74]); // ESC[40m + ESC[2J
+
+    const emit_rows = (row_order) => {
+        parts.push(clear);
+        for (const row of row_order) {
+            parts.push(cursor_move_buf(row + 1, 1));
+            const row_doc = {columns, rows: 1, data: data.slice(row * columns, (row + 1) * columns), ice_colors, extended_colors, c64_background};
+            const enc = encode_as_ansi(row_doc, true);
+            parts.push(Buffer.isBuffer(enc) ? enc : Buffer.from(enc, "binary"));
+        }
+    };
 
     if (effect === "instant") {
         parts.push(Buffer.from([27, 91, 50, 74])); // ESC[2J
-        const frame_doc = {columns, rows, data, ice_colors, extended_colors, c64_background};
-        const enc = encode_as_ansi(frame_doc, true);
+        const enc = encode_as_ansi({columns, rows, data, ice_colors, extended_colors, c64_background}, true);
         parts.push(Buffer.isBuffer(enc) ? enc : Buffer.from(enc, "binary"));
+
+    } else if (effect === "wipe_down") {
+        emit_rows(Array.from({length: rows}, (_, r) => r));
+
+    } else if (effect === "wipe_up") {
+        emit_rows(Array.from({length: rows}, (_, r) => rows - 1 - r));
+
+    } else if (effect === "wipe_right") {
+        const idx = [];
+        for (let c = 0; c < columns; c++) for (let r = 0; r < rows; r++) idx.push(r * columns + c);
+        return emit_cells_ordered(data, columns, rows, opts, idx);
+
+    } else if (effect === "wipe_left") {
+        const idx = [];
+        for (let c = columns - 1; c >= 0; c--) for (let r = 0; r < rows; r++) idx.push(r * columns + c);
+        return emit_cells_ordered(data, columns, rows, opts, idx);
+
+    } else if (effect === "diagonal") {
+        const all = [];
+        for (let r = 0; r < rows; r++) for (let c = 0; c < columns; c++) all.push({i: r * columns + c, k: r + c});
+        all.sort((a, b) => a.k - b.k);
+        return emit_cells_ordered(data, columns, rows, opts, all.map(x => x.i));
+
+    } else if (effect === "starburst") {
+        const cx = (columns - 1) / 2, cy = (rows - 1) / 2;
+        const all = [];
+        for (let r = 0; r < rows; r++) for (let c = 0; c < columns; c++)
+            all.push({i: r * columns + c, d: (r - cy) ** 2 + (c - cx) ** 2});
+        all.sort((a, b) => a.d - b.d);
+        return emit_cells_ordered(data, columns, rows, opts, all.map(x => x.i));
+
+    } else if (effect === "scramble") {
+        const idx = Array.from({length: rows * columns}, (_, i) => i);
+        for (let i = idx.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [idx[i], idx[j]] = [idx[j], idx[i]];
+        }
+        return emit_cells_ordered(data, columns, rows, opts, idx);
+
+    } else if (effect === "checkerboard") {
+        const even = [], odd = [];
+        for (let r = 0; r < rows; r++) for (let c = 0; c < columns; c++)
+            ((r + c) % 2 === 0 ? even : odd).push(r * columns + c);
+        return emit_cells_ordered(data, columns, rows, opts, [...even, ...odd]);
+
     } else {
-        // inchworm: clear then reveal row by row with explicit cursor positioning
-        parts.push(Buffer.from([27, 91, 52, 48, 109, 27, 91, 50, 74])); // ESC[40m + ESC[2J
+        // inchworm (default): clear then reveal row by row with authentic ESC[s+\n+ESC[u
+        parts.push(clear);
         for (let row = 0; row < rows; row++) {
             parts.push(cursor_move_buf(row + 1, 1));
-            const row_doc = {
-                columns, rows: 1,
-                data: data.slice(row * columns, (row + 1) * columns),
-                ice_colors, extended_colors, c64_background,
-            };
+            const row_doc = {columns, rows: 1, data: data.slice(row * columns, (row + 1) * columns), ice_colors, extended_colors, c64_background};
             const enc = encode_as_ansi(row_doc, true);
             parts.push(Buffer.isBuffer(enc) ? enc : Buffer.from(enc, "binary"));
-            // ESC[s + \n + ESC[u after each row (authentic inchworm signature)
-            if (row < rows - 1) parts.push(Buffer.from([27, 91, 115, 10, 27, 91, 117]));
+            if (row < rows - 1) parts.push(Buffer.from([27, 91, 115, 10, 27, 91, 117])); // ESC[s + \n + ESC[u
         }
     }
     return Buffer.concat(parts);
 }
 
 // Generate the full animation byte stream from all frames (used for playback and export).
+// Frames with scene_break===false emit a differential sub-frame (ESC[H + changed cells only).
+// All other frames (scene_break===true, undefined, or first frame) emit a full scene clear+draw.
 function generate_animation_stream(doc_obj) {
     const anim = doc_obj.animation;
     if (!anim || !anim.frames.length) return null;
+    const {columns, rows} = doc_obj;
     const opts = {
         ice_colors: doc_obj.ice_colors,
         extended_colors: doc_obj.extended_colors,
         c64_background: doc_obj.c64_background,
     };
-    const parts = anim.frames.map(f =>
-        generate_frame_stream(f, doc_obj.columns, doc_obj.rows, opts, f.reveal || "inchworm")
-    );
+    const parts = [];
+    let prev_data = null;
+    for (const f of anim.frames) {
+        const curr_data = composite_layers(f.layers, columns, rows, opts.extended_colors);
+        if (f.scene_break === false && prev_data !== null) {
+            parts.push(generate_diff_frame_stream(prev_data, curr_data, columns, rows, opts));
+        } else {
+            parts.push(generate_frame_stream(f, columns, rows, opts, f.reveal || "inchworm"));
+        }
+        prev_data = curr_data;
+    }
     return Buffer.concat(parts);
 }
 

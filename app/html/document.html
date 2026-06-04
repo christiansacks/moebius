@@ -92,18 +92,30 @@
                         <select id = "anim_reveal">
                             <option value = "inchworm">Inchworm</option>
                             <option value = "instant">Instant</option>
+                            <option value = "wipe_down">Wipe Down</option>
+                            <option value = "wipe_up">Wipe Up</option>
+                            <option value = "wipe_left">Wipe Left</option>
+                            <option value = "wipe_right">Wipe Right</option>
+                            <option value = "diagonal">Diagonal</option>
+                            <option value = "starburst">Starburst</option>
+                            <option value = "scramble">Scramble</option>
+                            <option value = "checkerboard">Checkerboard</option>
                         </select>
                     </label>
                     <label title = "Streaming speed">Speed
                         <select id = "anim_speed">
-                            <option value = "80">Slow</option>
-                            <option value = "200" selected>Medium</option>
+                            <option value = "4">2400 baud</option>
+                            <option value = "12">9600 baud</option>
+                            <option value = "80" selected>Slow</option>
+                            <option value = "200">Medium</option>
                             <option value = "600">Fast</option>
                             <option value = "5000">Max</option>
                         </select>
                     </label>
-                    <button class = "anim_btn" id = "anim_clone" title = "Clone current frame">+ Clone</button>
-                    <button class = "anim_btn" id = "anim_blank" title = "Add blank frame">+ Blank</button>
+                    <label title = "This frame starts a new scene (full clear before draw)"><input type = "checkbox" id = "anim_scene_break"> Scene Break</label>
+                    <button class = "anim_btn" id = "anim_clone" title = "Clone current frame (sub-frame)">+ Clone</button>
+                    <button class = "anim_btn" id = "anim_blank" title = "Add blank sub-frame">+ Sub</button>
+                    <button class = "anim_btn" id = "anim_scene" title = "Add blank scene (new scene break frame)">+ Scene</button>
                     <button class = "anim_btn" id = "anim_del" title = "Delete current frame">✕ Del</button>
                     <button class = "anim_btn anim_dock_btn" id = "anim_dock_toggle" title = "Move to bottom / right panel">⇅</button>
                 </div>

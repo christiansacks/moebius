@@ -337,7 +337,7 @@ function layer_menu_template(win) {
             {label: "Move Layer Up", id: "layer_move_up_menu", accelerator: "CmdorCtrl+PageUp", click(item) {win.send("layer_move_up");}, enabled: false},
             {label: "Move Layer Down", id: "layer_move_down_menu", accelerator: "CmdorCtrl+PageDown", click(item) {win.send("layer_move_down");}, enabled: false},
             {type: "separator"},
-            {label: "Merge Down", id: "layer_merge_down_menu", accelerator: "CmdorCtrl+Shift+M", click(item) {win.send("layer_merge_down");}, enabled: false},
+            {label: "Merge Down", id: "layer_merge_down_menu", accelerator: "CmdorCtrl+Shift+D", click(item) {win.send("layer_merge_down");}, enabled: false},
             {label: "Flatten All Layers", id: "layer_merge_all_menu", accelerator: "CmdorCtrl+Shift+F", click(item) {win.send("layer_merge_all");}, enabled: false},
         ],
     };

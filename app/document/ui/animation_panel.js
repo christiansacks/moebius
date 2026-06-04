@@ -103,6 +103,9 @@ function update_controls() {
     $("anim_play").textContent = doc.is_playing ? "⏸" : "▶";
     $("anim_play").classList.toggle("playing", doc.is_playing);
     $("anim_del").disabled = doc.frame_count <= 1;
+    const is_break = !frame || frame.scene_break !== false;
+    $("anim_scene_break").checked = is_break;
+    $("anim_scene_break").disabled = doc.current_frame === 0;
 }
 
 function compute_drop_position(mx) {
@@ -144,8 +147,9 @@ function update_strip() {
     strip.innerHTML = "";
     frames.forEach((frame, idx) => {
         const card = document.createElement("div");
-        card.className = "anim_frame_card" + (idx === current ? " active" : "");
-        card.title = "Drag to reorder";
+        const is_break = frame.scene_break !== false;
+        card.className = "anim_frame_card" + (idx === current ? " active" : "") + (is_break ? " scene_break" : "");
+        card.title = is_break ? "Scene break — drag to reorder" : "Sub-frame — drag to reorder";
         const num = document.createElement("div");
         num.className = "anim_frame_num";
         num.textContent = idx + 1;
@@ -248,8 +252,12 @@ function init() {
     });
     $("anim_next").addEventListener("click", () => { if (!doc.is_playing && !doc.stream_playing) doc.goto_frame(Math.min(doc.frame_count - 1, doc.current_frame + 1)); });
     $("anim_last").addEventListener("click", () => { if (!doc.is_playing && !doc.stream_playing) doc.goto_frame(doc.frame_count - 1); });
+    $("anim_scene_break").addEventListener("change", () => {
+        if (!doc.is_playing && !doc.stream_playing) doc.set_scene_break(doc.current_frame, $("anim_scene_break").checked);
+    });
     $("anim_clone").addEventListener("click", () => { if (!doc.is_playing && !doc.stream_playing) doc.clone_frame(doc.current_frame); });
     $("anim_blank").addEventListener("click", () => { if (!doc.is_playing && !doc.stream_playing) doc.add_blank_frame(doc.current_frame); });
+    $("anim_scene").addEventListener("click", () => { if (!doc.is_playing && !doc.stream_playing) doc.add_blank_frame(doc.current_frame, true); });
     $("anim_del").addEventListener("click", () => { if (!doc.is_playing && !doc.stream_playing) doc.delete_frame(doc.current_frame); });
     $("anim_fps").addEventListener("change", () => doc.set_animation_fps(parseInt($("anim_fps").value) || 8));
     $("anim_delay_ms").addEventListener("change", () => {
