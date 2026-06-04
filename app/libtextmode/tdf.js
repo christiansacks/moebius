@@ -1,40 +1,34 @@
 const fs = require("fs");
 const path = require("path");
 
-const TDF_SIG = "\x13TheDraw FONTS file\x1a";
+const TDF_MAGIC = "\x13TheDraw FONTS file\x1a";
 
-// Parse a single font from a complete .TDF file buffer (one font per file).
-// Returns {name, type, spacing, block_size, chars} or null if invalid.
-// Format from tdfonts.js: each file has exactly one font at fixed offsets
-function parse_font(buf) {
-    if (buf.length < 233) return null;
+// Parse a single font block starting at buf[offset].
+// Each block begins with 0x55 0xAA. Returns {name, type, spacing, block_size, chars} or null.
+function parse_font_block(buf, offset) {
+    if (offset + 213 > buf.length) return null;
+    if (buf[offset] !== 0x55 || buf[offset + 1] !== 0xAA) return null;
 
-    // Check magic signature
-    const magic = "\x13TheDraw FONTS file\x1a";
-    for (let i = 0; i < magic.length; i++) {
-        if (buf[i] !== magic.charCodeAt(i)) return null;
-    }
+    const name_len = buf[offset + 4];
+    if (name_len < 0 || name_len > 12) return null;
+    const name = buf.slice(offset + 5, offset + 5 + name_len).toString("ascii").trim();
+    if (!name) return null;
 
-    // Parse header at fixed offsets (from tdfonts.js)
-    const nameLen   = buf[24];
-    const name      = buf.slice(25, 25 + nameLen).toString("ascii").trim();
-    const type      = buf[41]; // 0=outline, 1=block, 2=color
-    const spacing   = buf[42];
-    const block_size = buf[43];
+    const type       = buf[offset + 21];
+    const spacing    = buf[offset + 22];
+    const block_size = buf[offset + 23];
 
-    // Character offset table at offset 45 (94 chars * 2 bytes each)
-    const table_off = 45;
-    const data_off  = 233; // Font data starts here
+    const table_off = offset + 25;
+    const data_off  = offset + 213; // 25 + 94*2
 
     const chars = new Map();
     for (let i = 0; i < 94; i++) {
         const char_off = buf.readUInt16LE(table_off + i * 2);
-        if (char_off === 0xffff) continue; // undefined character
+        if (char_off === 0xffff) continue;
 
         const abs = data_off + char_off;
-        if (abs >= buf.length) continue;
+        if (abs + 2 > buf.length) continue;
 
-        // Read character: width, height, then cell data
         const width = buf[abs];
         const height = buf[abs + 1];
         let p = abs + 2;
@@ -44,12 +38,10 @@ function parse_font(buf) {
 
         while (p < buf.length && buf[p] !== 0x00) {
             let ch = buf[p++];
-
-            if (ch === 0x0D) { // Carriage return / end of row
+            if (ch === 0x0D) {
                 rows.push(row);
                 row = [];
             } else {
-                // Read color byte if color font
                 const attr = (type === 2) ? buf[p++] : 0;
                 const fg = (type === 2) ? (attr & 0x0F) : 7;
                 const bg = (type === 2) ? ((attr >> 4) & 0x0F) : 0;
@@ -63,14 +55,34 @@ function parse_font(buf) {
     return {name, type, spacing, block_size, chars};
 }
 
-
-// Scan one buffer for font name entries. Each .TDF file contains exactly one font.
-function scan_names_from_buf(buf, full_path) {
-    const font = parse_font(buf);
-    if (font && font.name) {
-        return [{name: font.name, file: full_path, font_index: 0}];
+// Parse all fonts from a TDF file buffer. Returns array (empty if invalid).
+// TDF files may contain multiple font blocks concatenated after the file magic.
+// Each block starts with 0x55 0xAA — scan for all of them.
+function parse_tdf_file(buf) {
+    if (buf.length < 233) return [];
+    for (let i = 0; i < TDF_MAGIC.length; i++) {
+        if (buf[i] !== TDF_MAGIC.charCodeAt(i)) return [];
     }
-    return [];
+
+    const fonts = [];
+    // Font blocks start at offset 20 (immediately after magic).
+    // Scan for 0x55 0xAA markers; validate with name check to skip false positives.
+    for (let i = 20; i < buf.length - 4; i++) {
+        if (buf[i] === 0x55 && buf[i + 1] === 0xAA && buf[i + 2] === 0x00 && buf[i + 3] === 0xFF) {
+            const font = parse_font_block(buf, i);
+            if (font) fonts.push(font);
+        }
+    }
+    return fonts;
+}
+
+// Scan one buffer for all font name entries.
+function scan_names_from_buf(buf, full_path) {
+    return parse_tdf_file(buf).map((font, idx) => ({
+        name: font.name,
+        file: full_path,
+        font_index: idx,
+    }));
 }
 
 
@@ -110,7 +122,8 @@ async function build_font_index(dir) {
 function get_font(entry) {
     try {
         const buf = fs.readFileSync(entry.file);
-        return parse_font(buf);
+        const fonts = parse_tdf_file(buf);
+        return fonts[entry.font_index ?? 0] ?? null;
     } catch (_) {
         return null;
     }
