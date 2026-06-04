@@ -768,6 +768,10 @@ body.dark #anim_reveal, body.dark #anim_speed {
     border: 1px solid rgba(255,255,255,0.15);
     color: #ccc;
 }
+body.dark select option {
+    background: #2a2a2e;
+    color: #ccc;
+}
 #anim_fps, #anim_delay_ms { width: 44px; }
 #anim_stream_play { color: #88aaee; }
 #anim_stream_play.playing { color: #ffcc44; }
@@ -867,6 +871,7 @@ body.dark .anim_frame_num { color: #aaa; }
 .anim_frame_card.active .anim_frame_delay { color: #6699dd; }
 .anim_frame_card { cursor: grab; }
 .anim_frame_card.dragging { opacity: 0.35; cursor: grabbing; }
+.anim_frame_card.scene_break { border-top: 2px solid #f0a000; }
 .anim_drop_indicator {
     flex: 0 0 3px;
     align-self: stretch;

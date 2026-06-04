@@ -14,6 +14,7 @@ let _stream_bytes = null;
 let _stream_pos = 0;
 let _stream_parser = null;
 let _stream_bytes_per_tick = 200;
+let _stream_display_data = null;
 const actions =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, PASTE_AS_SELECTION: 17, ROTATE: 18, FLIP_X: 19, FLIP_Y: 20, SET_BG: 21};
 const statuses = {ACTIVE: 0, IDLE: 1, AWAY: 2, WEB: 3};
 const modes = {EDITING: 0, SELECTION: 1, OPERATION: 2};
@@ -1419,7 +1420,7 @@ class TextModeDoc extends events.EventEmitter {
 
     enable_animation_mode() {
         if (!doc || doc.animation) return;
-        doc.animation = {fps: 8, frames: [{layers: doc.layers, delay_ms: 0}]};
+        doc.animation = {fps: 8, frames: [{layers: doc.layers, delay_ms: 0, scene_break: true}]};
         _current_frame = 0;
         this.emit("animation_mode_changed", true);
         this.emit("animation_changed");
@@ -1455,16 +1456,18 @@ class TextModeDoc extends events.EventEmitter {
         const clone = {
             layers: src.layers.map(l => ({...l, data: l.data.map(b => b ? {...b} : null)})),
             delay_ms: src.delay_ms,
+            scene_break: false,
         };
         doc.animation.frames.splice(idx + 1, 0, clone);
         this.goto_frame(idx + 1);
         this.emit("animation_changed");
     }
 
-    add_blank_frame(after_idx) {
+    add_blank_frame(after_idx, scene_break = false) {
         if (!doc || !doc.animation) return;
         const bg_layer = libtextmode.make_layer("Background", doc.columns, doc.rows);
-        doc.animation.frames.splice(after_idx + 1, 0, {layers: [bg_layer], delay_ms: 0});
+        bg_layer.data = bg_layer.data.map(() => ({fg: 7, bg: 0, code: 32}));
+        doc.animation.frames.splice(after_idx + 1, 0, {layers: [bg_layer], delay_ms: 0, scene_break});
         this.goto_frame(after_idx + 1);
         this.emit("animation_changed");
     }
@@ -1494,6 +1497,13 @@ class TextModeDoc extends events.EventEmitter {
     set_frame_delay(idx, delay_ms) {
         if (!doc || !doc.animation) return;
         doc.animation.frames[idx].delay_ms = Math.max(0, delay_ms);
+        this.emit("animation_changed");
+    }
+
+    set_scene_break(idx, value) {
+        if (!doc || !doc.animation) return;
+        if (idx === 0) return; // first frame is always a scene break
+        doc.animation.frames[idx].scene_break = !!value;
         this.emit("animation_changed");
     }
 
@@ -1535,6 +1545,7 @@ class TextModeDoc extends events.EventEmitter {
         _stream_playing = true;
         _stream_pos = 0;
         _stream_parser = new libtextmode.IncrementalAnsiParser(doc.columns);
+        _stream_display_data = new Array(doc.rows * doc.columns).fill(null);
         this.emit("stream_playback_started");
         _stream_timer = setInterval(() => {
             if (_stream_pos >= _stream_bytes.length) {
@@ -1547,12 +1558,12 @@ class TextModeDoc extends events.EventEmitter {
             const new_data = _stream_parser.get_data();
             for (let i = 0; i < new_data.length && i < doc.rows * doc.columns; i++) {
                 const cell = new_data[i];
-                const old_cell = doc.data[i];
+                const old_cell = _stream_display_data[i];
                 if (!old_cell || cell.code !== old_cell.code || cell.fg !== old_cell.fg || cell.bg !== old_cell.bg) {
                     const x = i % doc.columns;
                     const y = Math.floor(i / doc.columns);
                     libtextmode.render_at(render, x, y, cell, doc.c64_background);
-                    doc.data[i] = cell;
+                    _stream_display_data[i] = cell;
                 }
             }
             const progress = _stream_pos / _stream_bytes.length;
@@ -1566,6 +1577,17 @@ class TextModeDoc extends events.EventEmitter {
         if (_stream_timer) {clearInterval(_stream_timer); _stream_timer = null;}
         _stream_bytes = null;
         _stream_parser = null;
+        // Restore canvas for any cells painted during stream playback
+        if (_stream_display_data) {
+            for (let i = 0; i < doc.rows * doc.columns; i++) {
+                if (_stream_display_data[i]) {
+                    const x = i % doc.columns;
+                    const y = Math.floor(i / doc.columns);
+                    libtextmode.render_at(render, x, y, doc.data[i], doc.c64_background);
+                }
+            }
+            _stream_display_data = null;
+        }
         this.emit("stream_playback_stopped");
     }
 

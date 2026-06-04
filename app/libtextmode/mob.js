@@ -45,6 +45,7 @@ function read_mob(buffer) {
             frames: payload.animation.frames.map(f => ({
                 delay_ms: f.delay_ms || 0,
                 reveal: f.reveal || "inchworm",
+                scene_break: f.scene_break,
                 layers: Array.isArray(f.layers) ? f.layers.map(parse_layer) : [],
             })),
         };
@@ -96,6 +97,7 @@ function encode_as_mob(doc_obj) {
             frames: anim.frames.map(f => ({
                 delay_ms: f.delay_ms || 0,
                 reveal: f.reveal || "inchworm",
+                scene_break: f.scene_break,
                 layers: f.layers.map(serialize_layer),
             })),
         };
