@@ -225,7 +225,7 @@ function font_menu_items(win) {
     });
 }
 
-function view_menu_template(win) {
+function view_menu_template(win, layers_visible = false) {
     return {
         label: "&View",
         submenu: [
@@ -237,7 +237,7 @@ function view_menu_template(win) {
             {label: "Show Status Bar", id: "show_status_bar", accelerator: "CmdorCtrl+/", click(item) {win.send("show_statusbar", item.checked);}, type: "checkbox", checked: true},
             {label: "Show Tool Bar", id: "show_tool_bar", accelerator: "CmdorCtrl+T", click(item) {win.send("show_toolbar", item.checked);}, type: "checkbox", checked: true},
             {label: "Show Preview", id: "show_preview", accelerator: "CmdorCtrl+Alt+P", click(item) {win.send("show_preview", item.checked);}, type: "checkbox", checked: true},
-            {label: "Show Layers Panel", id: "show_layers_panel", accelerator: "CmdorCtrl+Shift+L", click(item) {win.send("show_layers_panel", item.checked);}, type: "checkbox", checked: true},
+            {label: "Show Layers Panel", id: "show_layers_panel", accelerator: "CmdorCtrl+Shift+L", click(item) {win.send("show_layers_panel", item.checked);}, type: "checkbox", checked: !!layers_visible},
             {label: "Animation Mode", id: "animation_mode", accelerator: "CmdorCtrl+Shift+M", click(item) {win.send("toggle_animation_mode");}, type: "checkbox", checked: false},
             {type: "separator"},
             {label: "Previous Character Set", id: "previous_character_set", accelerator: "Ctrl+,", click(item) {win.send("previous_character_set");}, enabled: true},
@@ -354,8 +354,8 @@ function font_menu_template(win) {
     };
 }
 
-function create_menu_template(win, chat, debug) {
-    const menu_lists = [file_menu_template(win), edit_menu_template(win, chat), selection_menu_template(win, chat), colors_menu_template(win), view_menu_template(win), layer_menu_template(win), font_menu_template(win), network_menu_template(win, chat)];
+function create_menu_template(win, chat, debug, layers_visible) {
+    const menu_lists = [file_menu_template(win), edit_menu_template(win, chat), selection_menu_template(win, chat), colors_menu_template(win), view_menu_template(win, layers_visible), layer_menu_template(win), font_menu_template(win), network_menu_template(win, chat)];
     if (debug) menu_lists.push(debug_menu_template(win));
     return menu_lists;
 }
@@ -725,8 +725,8 @@ class MenuEvent extends events.EventEmitter {
         return electron.Menu.buildFromTemplate([moebius_menu, bare_file, bare_edit, window_menu_items, help_menu_items]);
     }
 
-    document_menu(win, debug) {
-        const menu = darwin ? electron.Menu.buildFromTemplate([moebius_menu, ...create_menu_template(win, false, debug), window_menu_items, help_menu_items]) : electron.Menu.buildFromTemplate([...create_menu_template(win, false, debug), help_menu_items]);
+    document_menu(win, debug, layers_visible) {
+        const menu = darwin ? electron.Menu.buildFromTemplate([moebius_menu, ...create_menu_template(win, false, debug, layers_visible), window_menu_items, help_menu_items]) : electron.Menu.buildFromTemplate([...create_menu_template(win, false, debug, layers_visible), help_menu_items]);
         menus[win.id] = menu;
         return menu;
     }

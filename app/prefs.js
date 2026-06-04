@@ -45,7 +45,11 @@ const default_values = {
     default_fkeys: 5,
     server: "",
     pass: "",
-    saved_servers: []
+    saved_servers: [],
+    layers_panel_visible: false,
+    window_bounds: null,
+    canvas_zoom: 1.0,
+    anim_panel_dock: "bottom",
 };
 const fs = require("fs");
 const JSON5 = require("json5");

@@ -19,8 +19,10 @@ async function new_win(file, options, touchbar, touchbar_opts) {
     });
 }
 
-async function new_doc() {
-    return await new_win("app/html/document.html", {width: 1280, height: 800, minWidth: 800, minHeight: 500, backgroundColor: "#292c33"});
+async function new_doc(bounds) {
+    const size = (bounds && bounds.width && bounds.height) ? {width: bounds.width, height: bounds.height} : {width: 1280, height: 800};
+    const pos  = (bounds && bounds.x != null && bounds.y != null) ? {x: bounds.x, y: bounds.y} : {};
+    return await new_win("app/html/document.html", {...size, ...pos, minWidth: 800, minHeight: 500, backgroundColor: "#292c33"});
 }
 
 async function new_modal(file, window_opts, touchbar, touchbar_opts) {

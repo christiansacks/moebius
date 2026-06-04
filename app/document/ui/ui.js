@@ -257,6 +257,7 @@ function set_zoom(factor) {
     document.body.appendChild(zoom_element);
     zoom_element.classList.add("fade");
     send("update_menu_checkboxes", {actual_size: (canvas_zoom == 1.0)});
+    send("set_pref", {key: "canvas_zoom", value: canvas_zoom});
 }
 
 function zoom_in() {
@@ -353,6 +354,7 @@ on("hide_scrollbars", (event, value) => hide_scrollbars(value));
 on("zoom_in", (event) => zoom_in());
 on("zoom_out", (event) => zoom_out());
 on("actual_size", (event) => actual_size());
+on("canvas_zoom", (event, zoom) => set_zoom(zoom));
 
 document.addEventListener("DOMContentLoaded", (event) => {
     $("use_9px_font_toggle").addEventListener("mousedown", (event) => doc.use_9px_font = !doc.use_9px_font, true);

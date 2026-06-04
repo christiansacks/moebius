@@ -229,7 +229,12 @@ on("remove_ice_colors", (event) => send("new_document", remove_ice_colors(doc)))
 on("connect_to_server", (event, {server, pass}) => doc.connect_to_server(server, pass));
 on("backup_folder", (event, folder) => backup_folder = folder);
 on("use_backup", (event, value) => use_backup(value));
-on("show_layers_panel", (event, visible) => layers_panel.show_layers_panel(visible));
+on("show_layers_panel", (event, visible) => {
+    layers_panel.show_layers_panel(visible);
+    send("set_pref", {key: "layers_panel_visible", value: visible});
+});
+on("layers_panel_visible", (event, visible) => layers_panel.show_layers_panel(visible));
+on("anim_panel_dock", (event, state) => animation_panel.apply_dock_state(state));
 on("font_open_picker", () => font_panel.open_picker());
 on("layer_add", () => doc.add_layer());
 on("layer_duplicate", () => doc.duplicate_layer());

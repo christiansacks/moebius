@@ -1,4 +1,5 @@
 const doc = require("../doc");
+const {send} = require("../../senders");
 
 function $(id) { return document.getElementById(id); }
 
@@ -63,6 +64,11 @@ function toggle_dock() {
         $("anim_dock_toggle").title = "Move to bottom";
         $("anim_dock_toggle").textContent = "⇅";
     }
+    send("set_pref", {key: "anim_panel_dock", value: dock_state});
+}
+
+function apply_dock_state(state) {
+    if (state && state !== dock_state) toggle_dock();
 }
 
 function init_resize_handle() {
@@ -273,4 +279,4 @@ function init() {
     });
 }
 
-module.exports = {init, show, update, update_frame, set_playing, set_stream_playing, set_stream_progress};
+module.exports = {init, show, update, update_frame, set_playing, set_stream_playing, set_stream_progress, apply_dock_state};

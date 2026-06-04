@@ -25,9 +25,22 @@ function cleanup(id) {
     if (docs.length == 0) menu.set_application_menu();
 }
 
+function validate_bounds(bounds) {
+    if (!bounds || bounds.width == null) return null;
+    const displays = electron.screen.getAllDisplays();
+    const visible = displays.some(d =>
+        bounds.x < d.workArea.x + d.workArea.width &&
+        bounds.x + bounds.width > d.workArea.x &&
+        bounds.y < d.workArea.y + d.workArea.height &&
+        bounds.y + bounds.height > d.workArea.y
+    );
+    return visible ? bounds : null;
+}
+
 async function new_document_window() {
-    const win = await window.new_doc();
-    if (last_win_pos) {
+    const saved_bounds = validate_bounds(prefs.get("window_bounds"));
+    const win = await window.new_doc(saved_bounds);
+    if (!saved_bounds && last_win_pos) {
         const display = electron.screen.getPrimaryDisplay();
         const [max_x, max_y] = [display.workArea.width + display.workArea.x - 1280, display.workArea.height + display.workArea.y - 800];
         const [new_x, new_y] = [last_win_pos[0] + 30, last_win_pos[1] + 30];
@@ -36,7 +49,8 @@ async function new_document_window() {
     const win_pos = win.getPosition();
     last_win_pos = win_pos;
     const debug = prefs.get("debug");
-    docs[win.id] = {win, menu: menu.document_menu(win, debug), chat_input_menu: menu.chat_input_menu(win, debug), edited: false, win_pos, destroyed: false, open_in_current_window: false};
+    const layers_visible = prefs.get("layers_panel_visible");
+    docs[win.id] = {win, menu: menu.document_menu(win, debug, layers_visible), chat_input_menu: menu.chat_input_menu(win, debug), edited: false, win_pos, destroyed: false, open_in_current_window: false};
     touchbar.create_touch_bars(win);
     prefs.send(win);
     win.on("focus", (event) => {
@@ -53,6 +67,7 @@ async function new_document_window() {
         // win.openDevTools({mode: "detach"});
     });
     win.on("close", (event) => {
+        prefs.set("window_bounds", win.getBounds());
         if (prefs.get("unsaved_changes") && docs[win.id].edited && !docs[win.id].destroyed) {
             event.preventDefault();
             win.send("check_before_closing");
