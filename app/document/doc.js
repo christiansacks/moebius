@@ -1478,6 +1478,19 @@ class TextModeDoc extends events.EventEmitter {
         this.emit("animation_changed");
     }
 
+    move_frame(from, drop_before) {
+        if (!doc || !doc.animation) return;
+        const frames = doc.animation.frames;
+        if (from < 0 || from >= frames.length) return;
+        if (drop_before === from || drop_before === from + 1) return;
+        const [frame] = frames.splice(from, 1);
+        const insert_at = drop_before > from ? drop_before - 1 : drop_before;
+        frames.splice(insert_at, 0, frame);
+        _current_frame = -1;
+        this.goto_frame(insert_at);
+        this.emit("animation_changed");
+    }
+
     set_frame_delay(idx, delay_ms) {
         if (!doc || !doc.animation) return;
         doc.animation.frames[idx].delay_ms = Math.max(0, delay_ms);

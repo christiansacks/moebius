@@ -865,6 +865,15 @@ body.dark .anim_frame_num { color: #aaa; }
     margin-top: 2px;
 }
 .anim_frame_card.active .anim_frame_delay { color: #6699dd; }
+.anim_frame_card { cursor: grab; }
+.anim_frame_card.dragging { opacity: 0.35; cursor: grabbing; }
+.anim_drop_indicator {
+    flex: 0 0 3px;
+    align-self: stretch;
+    background: #6699dd;
+    border-radius: 2px;
+    pointer-events: none;
+}
 
 .hidden {
     display: none !important;

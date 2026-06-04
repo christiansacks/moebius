@@ -2,6 +2,10 @@ const doc = require("../doc");
 
 function $(id) { return document.getElementById(id); }
 
+// ── Drag-to-reorder state ─────────────────────────────────────────────────────
+let drag_from = null, drag_to = null, drag_card = null;
+let drag_start_x = 0, drag_start_y = 0, drag_moved = false;
+
 const MIN_HEIGHT = 70;
 const MAX_HEIGHT = 400;
 const DEFAULT_HEIGHT = 110;
@@ -101,6 +105,37 @@ function update_controls() {
     $("anim_del").disabled = doc.frame_count <= 1;
 }
 
+function compute_drop_position(mx) {
+    const cards = [...$("anim_strip").querySelectorAll(".anim_frame_card")];
+    for (let i = 0; i < cards.length; i++) {
+        const rect = cards[i].getBoundingClientRect();
+        if (mx < rect.left + rect.width / 2) return i;
+    }
+    return cards.length;
+}
+
+function render_drop_indicator() {
+    const existing = $("anim_strip").querySelector(".anim_drop_indicator");
+    if (existing) existing.remove();
+    if (drag_from === null || drag_to === null) return;
+    if (drag_to === drag_from || drag_to === drag_from + 1) return;
+    const indicator = document.createElement("div");
+    indicator.className = "anim_drop_indicator";
+    const strip = $("anim_strip");
+    const cards = [...strip.querySelectorAll(".anim_frame_card")];
+    if (drag_to >= cards.length) strip.appendChild(indicator);
+    else strip.insertBefore(indicator, cards[drag_to]);
+}
+
+function end_drag() {
+    if (drag_card) drag_card.classList.remove("dragging");
+    const indicator = $("anim_strip") && $("anim_strip").querySelector(".anim_drop_indicator");
+    if (indicator) indicator.remove();
+    drag_from = null; drag_to = null; drag_card = null; drag_moved = false;
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+}
+
 function update_strip() {
     if (!doc.animation_mode) return;
     const strip = $("anim_strip");
@@ -110,6 +145,7 @@ function update_strip() {
     frames.forEach((frame, idx) => {
         const card = document.createElement("div");
         card.className = "anim_frame_card" + (idx === current ? " active" : "");
+        card.title = "Drag to reorder";
         const num = document.createElement("div");
         num.className = "anim_frame_num";
         num.textContent = idx + 1;
@@ -118,7 +154,16 @@ function update_strip() {
         delay.textContent = frame.delay_ms > 0 ? frame.delay_ms + "ms" : (frame.reveal || "inchworm");
         card.appendChild(num);
         card.appendChild(delay);
-        card.addEventListener("click", () => { if (!doc.is_playing && !doc.stream_playing) doc.goto_frame(idx); });
+        card.addEventListener("mousedown", (e) => {
+            if (e.button !== 0 || doc.is_playing || doc.stream_playing) return;
+            e.preventDefault();
+            drag_from = idx;
+            drag_to = idx;
+            drag_card = card;
+            drag_start_x = e.clientX;
+            drag_start_y = e.clientY;
+            drag_moved = false;
+        });
         strip.appendChild(card);
     });
     const active_card = strip.querySelector(".anim_frame_card.active");
@@ -161,6 +206,34 @@ function set_stream_progress(p) {
 function init() {
     init_resize_handle();
     init_wheel_scroll();
+
+    document.addEventListener("mousemove", (e) => {
+        if (drag_from === null) return;
+        if (!drag_moved) {
+            if (Math.abs(e.clientX - drag_start_x) > 4 || Math.abs(e.clientY - drag_start_y) > 4) {
+                drag_moved = true;
+                drag_card.classList.add("dragging");
+                document.body.style.userSelect = "none";
+                document.body.style.cursor = "grabbing";
+            }
+        }
+        if (drag_moved) {
+            drag_to = compute_drop_position(e.clientX);
+            render_drop_indicator();
+        }
+    });
+
+    document.addEventListener("mouseup", (e) => {
+        if (drag_from === null) return;
+        const from = drag_from, to = drag_to, moved = drag_moved;
+        end_drag();
+        if (moved) {
+            if (to !== null && to !== from && to !== from + 1) doc.move_frame(from, to);
+        } else {
+            if (!doc.is_playing && !doc.stream_playing) doc.goto_frame(from);
+        }
+    });
+
 
     $("anim_dock_toggle").addEventListener("click", toggle_dock);
     $("anim_first").addEventListener("click", () => { if (!doc.is_playing && !doc.stream_playing) doc.goto_frame(0); });
