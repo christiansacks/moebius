@@ -11,7 +11,7 @@ function parse_font_block(buf, offset) {
 
     const name_len = buf[offset + 4];
     if (name_len < 0 || name_len > 12) return null;
-    const name = buf.slice(offset + 5, offset + 5 + name_len).toString("ascii").trim();
+    const name = buf.slice(offset + 5, offset + 5 + name_len).toString("ascii").replace(/[^\x20-\x7E]/g, "").trim();
     if (!name) return null;
 
     const type       = buf[offset + 21];
