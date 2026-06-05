@@ -1,4 +1,5 @@
 const ws = require("ws");
+const fs = require("fs");
 const libtextmode = require("./libtextmode/libtextmode");
 const action =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, SET_BG: 21, FRAME_DRAW: 22, FRAME_ADD: 23, FRAME_DELETE: 24, FRAME_MOVE: 25, FRAME_META: 26};
 const status_types = {ACTIVE: 0, IDLE: 1, AWAY: 2, WEB: 3};
@@ -281,17 +282,12 @@ class Joint {
 
     async start() {
         this.hostname = os.hostname();
-        try {
+        if (!fs.existsSync(this.file) && path.extname(this.file).toLowerCase() === ".mob") {
+            this.doc = this.new_mob_doc(this.columns, this.rows);
+            libtextmode.write_file(this.doc, this.file);
+            this.log(`created new file: ${this.file}`);
+        } else {
             this.doc = await libtextmode.read_file(this.file);
-        } catch (e) {
-            const ext = path.extname(this.file).toLowerCase();
-            if (ext === ".mob") {
-                this.doc = this.new_mob_doc(this.columns, this.rows);
-                libtextmode.write_file(this.doc, this.file);
-                this.log(`created new file: ${this.file}`);
-            } else {
-                throw e;
-            }
         }
         this.animation_mode = !!(this.doc.animation);
         this.wss = new ws.Server({noServer: true});
