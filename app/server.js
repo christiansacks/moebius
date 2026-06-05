@@ -235,10 +235,12 @@ class Joint {
         libtextmode.write_file(this.doc, file);
     }
 
-    constructor({path, file, pass, quiet = false, discord}) {
+    constructor({path, file, pass, quiet = false, discord, columns = 80, rows = 25}) {
         this.path = path;
         this.file = file;
         this.pass = pass;
+        this.columns = columns;
+        this.rows = rows;
         this.quiet = quiet;
         this.webhook = (discord == "") ? undefined : new WebhookClient({ url: discord });
         this.data_store = [];
@@ -270,9 +272,27 @@ class Joint {
         });
     }
 
+    new_mob_doc(columns = 80, rows = 25) {
+        const layer_size = columns * rows;
+        const layer = {name: "Background", visible: true, locked: false, opacity: 1.0, blend_mode: "normal", offset_x: 0, offset_y: 0, data: new Array(layer_size).fill(null).map(() => ({fg: 7, bg: 0, code: 32}))};
+        const animation = {fps: 8, frames: [{delay_ms: 0, reveal: "inchworm", scene_break: true, layers: [layer]}]};
+        return {columns, rows, title: "", author: "", group: "", date: "", comments: "", font_name: "IBM VGA", use_9px_font: false, ice_colors: false, extended_colors: false, palette: undefined, layers: animation.frames[0].layers, animation};
+    }
+
     async start() {
         this.hostname = os.hostname();
-        this.doc = await libtextmode.read_file(this.file);
+        try {
+            this.doc = await libtextmode.read_file(this.file);
+        } catch (e) {
+            const ext = path.extname(this.file).toLowerCase();
+            if (ext === ".mob") {
+                this.doc = this.new_mob_doc(this.columns, this.rows);
+                libtextmode.write_file(this.doc, this.file);
+                this.log(`created new file: ${this.file}`);
+            } else {
+                throw e;
+            }
+        }
         this.animation_mode = !!(this.doc.animation);
         this.wss = new ws.Server({noServer: true});
         this.log(`started${this.animation_mode ? " (animation mode)" : ""}`);
@@ -289,13 +309,13 @@ class Joint {
     }
 }
 
-async function start_joint({path: server_path, file, pass = "", quiet = false, server_port, discord = ""} = {}) {
+async function start_joint({path: server_path, file, pass = "", quiet = false, server_port, discord = "", columns = 80, rows = 25} = {}) {
     server_path = (server_path != undefined) ? server_path : path.parse(file).base;
     server_path = `/${server_path.toLowerCase()}`;
     if (!server.address()) server.listen(server_port);
     if (joints[server_path]) throw "Path already in use.";
     server_path = server_path.toLowerCase();
-    joints[server_path] = new Joint({path: server_path, file, pass, quiet, discord});
+    joints[server_path] = new Joint({path: server_path, file, pass, quiet, discord, columns, rows});
     await joints[server_path].start();
     return server_path;
 }
