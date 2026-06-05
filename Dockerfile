@@ -10,7 +10,8 @@ RUN npm install --no-save \
     minimist@1.2 \
     upng-js@2.1 \
     fzstd@0.1 \
-    express@4.22
+    express@4.22 \
+    discord.js@14.26
 
 COPY server.js ./
 COPY app/server.js ./app/
