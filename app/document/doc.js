@@ -247,6 +247,7 @@ class Connection extends events.EventEmitter {
                         connected_doc.layers = frames[0].layers;
                     } else {
                         this.animation_server = false;
+                        connected_doc = libtextmode.new_document(connected_doc);
                     }
                 } catch (e) {
                     console.error("Error building animation doc from server:", e);

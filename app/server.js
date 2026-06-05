@@ -293,8 +293,12 @@ class Joint {
 
     async start() {
         this.hostname = os.hostname();
-        if (!fs.existsSync(this.file) && path.extname(this.file).toLowerCase() === ".mob") {
-            this.doc = this.new_mob_doc(this.columns, this.rows);
+        if (!fs.existsSync(this.file)) {
+            if (path.extname(this.file).toLowerCase() === ".mob") {
+                this.doc = this.new_mob_doc(this.columns, this.rows);
+            } else {
+                this.doc = libtextmode.new_document({columns: this.columns, rows: this.rows});
+            }
             libtextmode.write_file(this.doc, this.file);
             this.log(`created new file: ${this.file}`);
         } else {
