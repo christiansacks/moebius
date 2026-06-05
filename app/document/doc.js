@@ -6,6 +6,7 @@ const path = require("path");;
 let doc, render;
 let active_layer = 0;
 let _current_frame = 0;
+let _opening = false;
 let _is_playing = false;
 let _playback_timer = null;
 let _stream_playing = false;
@@ -1740,19 +1741,27 @@ class TextModeDoc extends events.EventEmitter {
     get stream_playing() { return _stream_playing; }
 
     async open(file) {
-        this.stop_playback();
-        this.stop_stream_playback();
-        const parsed = await libtextmode.read_file(file);
-        doc = libtextmode.new_document(parsed);
-        doc.animation = parsed.animation || null;
-        active_layer = 0;
-        _current_frame = 0;
-        this.undo_history.reset_undos();
-        this.file = file;
-        await this.start_rendering();
-        this.emit("new_document");
-        this.ready();
-        send("set_file", {file: this.file});
+        if (_opening) return;
+        _opening = true;
+        try {
+            this.stop_playback();
+            this.stop_stream_playback();
+            const parsed = await libtextmode.read_file(file);
+            doc = libtextmode.new_document(parsed);
+            doc.animation = parsed.animation || null;
+            active_layer = 0;
+            _current_frame = 0;
+            this.undo_history.reset_undos();
+            this.file = file;
+            await this.start_rendering();
+            this.emit("new_document");
+            this.ready();
+            send("set_file", {file: this.file});
+        } catch (e) {
+            console.error("Failed to open file:", e);
+        } finally {
+            _opening = false;
+        }
     }
 
     async save(save_without_sauce) {

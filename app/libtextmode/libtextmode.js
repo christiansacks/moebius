@@ -71,10 +71,14 @@ function read_bytes(bytes, file) {
 }
 
 async function read_file(file) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         fs.readFile(file, (err, bytes) => {
-            if (err) throw(`Error: ${file} not found!`);
-            resolve(read_bytes(bytes, file));
+            if (err) return reject(new Error(`Error: ${file} not found!`));
+            try {
+                resolve(read_bytes(bytes, file));
+            } catch (e) {
+                reject(e);
+            }
         });
     });
 }
