@@ -15,7 +15,7 @@ let _stream_pos = 0;
 let _stream_parser = null;
 let _stream_bytes_per_tick = 200;
 let _stream_display_data = null;
-const actions =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, PASTE_AS_SELECTION: 17, ROTATE: 18, FLIP_X: 19, FLIP_Y: 20, SET_BG: 21};
+const actions =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, PASTE_AS_SELECTION: 17, ROTATE: 18, FLIP_X: 19, FLIP_Y: 20, SET_BG: 21, FRAME_DRAW: 22, FRAME_ADD: 23, FRAME_DELETE: 24, FRAME_MOVE: 25, FRAME_META: 26};
 const statuses = {ACTIVE: 0, IDLE: 1, AWAY: 2, WEB: 3};
 const modes = {EDITING: 0, SELECTION: 1, OPERATION: 2};
 let nick, group;
@@ -229,7 +229,24 @@ class Connection extends events.EventEmitter {
                 for (const user of data.users) this.join(user.id, user.nick, user.group, user.status, false);
                 this.join(data.id, nick, group, data.status);
                 this.ready = true;
-                this.emit("connected", libtextmode.uncompress(data.doc));
+                let connected_doc = libtextmode.uncompress(data.doc);
+                if (data.animation) {
+                    this.animation_server = true;
+                    const frames = data.animation.frames.map(f => {
+                        const cell_doc = libtextmode.uncompress(f.doc);
+                        return {
+                            delay_ms: f.delay_ms,
+                            reveal: f.reveal || "inchworm",
+                            scene_break: f.scene_break,
+                            layers: [{name: "Background", visible: true, locked: false, opacity: 1.0, blend_mode: "normal", offset_x: 0, offset_y: 0, data: cell_doc.data}],
+                        };
+                    });
+                    connected_doc.animation = {fps: data.animation.fps, frames};
+                    connected_doc.layers = frames[0].layers;
+                } else {
+                    this.animation_server = false;
+                }
+                this.emit("connected", connected_doc);
                 for (const message of this.queued_messages) this.message(message);
                 chat.show();
                 this.ws.addEventListener("close", () => this.disconnected());
@@ -272,6 +289,32 @@ class Connection extends events.EventEmitter {
                     doc.data[data.y * doc.columns + data.x] = Object.assign(data.block);
                     libtextmode.render_at(render, data.x, data.y, data.block, doc.c64_background);
                     if (user) this.users[data.id].last_row = data.y;
+                    break;
+                case actions.FRAME_DRAW: {
+                    if (!doc.animation) break;
+                    const anim_frame = doc.animation.frames[data.frame_idx];
+                    if (anim_frame && anim_frame.layers[0]) {
+                        const idx = data.y * doc.columns + data.x;
+                        anim_frame.layers[0].data[idx] = Object.assign(data.block);
+                        if (data.frame_idx === _current_frame) {
+                            doc.data[idx] = data.block;
+                            libtextmode.render_at(render, data.x, data.y, data.block, doc.c64_background);
+                        }
+                        if (user) this.users[data.id].last_row = data.y;
+                    }
+                    break;
+                }
+                case actions.FRAME_ADD:
+                    this.emit("remote_frame_added", data.after_idx, data.scene_break);
+                    break;
+                case actions.FRAME_DELETE:
+                    this.emit("remote_frame_deleted", data.frame_idx);
+                    break;
+                case actions.FRAME_MOVE:
+                    this.emit("remote_frame_moved", data.from, data.drop_before);
+                    break;
+                case actions.FRAME_META:
+                    this.emit("remote_frame_meta", data.frame_idx, {delay_ms: data.delay_ms, reveal: data.reveal, scene_break: data.scene_break});
                     break;
                 case actions.CHAT:
                     if (user) chat.chat(data.id, data.nick, data.group, data.text, data.time);
@@ -322,7 +365,17 @@ class Connection extends events.EventEmitter {
     selection(x, y) {this.send(actions.SELECTION, {x, y});}
     operation(x, y) {this.send(actions.OPERATION, {x, y});}
     hide_cursor() {this.send(actions.HIDE_CURSOR);}
-    draw(x, y, block) {this.send(actions.DRAW, {x, y, block});}
+    draw(x, y, block) {
+        if (this.animation_server) {
+            this.send(actions.FRAME_DRAW, {x, y, block, frame_idx: _current_frame});
+        } else {
+            this.send(actions.DRAW, {x, y, block});
+        }
+    }
+    frame_add(after_idx, scene_break) {this.send(actions.FRAME_ADD, {after_idx, scene_break});}
+    frame_delete(frame_idx) {this.send(actions.FRAME_DELETE, {frame_idx});}
+    frame_move(from, drop_before) {this.send(actions.FRAME_MOVE, {from, drop_before});}
+    frame_meta(frame_idx, meta) {this.send(actions.FRAME_META, {...meta, frame_idx});}
     sauce(title, author, group, comments) {this.send(actions.SAUCE, {title, author, group, comments});}
     ice_colors(value) {this.send(actions.ICE_COLORS, {value});}
     use_9px_font(value) {this.send(actions.USE_9PX_FONT, {value});}
@@ -347,6 +400,7 @@ class Connection extends events.EventEmitter {
         super();
         chat.removeAllListeners("goto_user");
         this.connected = false;
+        this.animation_server = false;
         this.server = server;
         this.pass = pass;
         chat.on("goto_user", (id) => {
@@ -773,6 +827,50 @@ class TextModeDoc extends events.EventEmitter {
         connection.on("goto_row", (line_no) => this.emit("goto_row", line_no));
         connection.on("goto_self", (line_no) => this.emit("goto_self"));
         connection.on("set_bg", (value) => this.emit("set_bg", value));
+        connection.on("remote_frame_added", (after_idx, scene_break) => {
+            if (!doc.animation) return;
+            const layer_size = doc.columns * doc.rows;
+            const bg_layer = libtextmode.make_layer("Background", doc.columns, doc.rows);
+            bg_layer.data = bg_layer.data.map(() => ({fg: 7, bg: 0, code: 32}));
+            doc.animation.frames.splice(after_idx + 1, 0, {layers: [bg_layer], delay_ms: 0, scene_break: !!scene_break});
+            if (_current_frame > after_idx) _current_frame++;
+            this.emit("animation_changed");
+        });
+        connection.on("remote_frame_deleted", (frame_idx) => {
+            if (!doc.animation || doc.animation.frames.length <= 1) return;
+            doc.animation.frames.splice(frame_idx, 1);
+            if (_current_frame >= frame_idx) {
+                const new_idx = Math.min(_current_frame, doc.animation.frames.length - 1);
+                _current_frame = -1;
+                this.goto_frame(new_idx);
+            }
+            this.emit("animation_changed");
+        });
+        connection.on("remote_frame_moved", (from, drop_before) => {
+            if (!doc.animation) return;
+            const frames = doc.animation.frames;
+            const was_current = _current_frame;
+            const [frame] = frames.splice(from, 1);
+            const insert_at = drop_before > from ? drop_before - 1 : drop_before;
+            frames.splice(insert_at, 0, frame);
+            if (was_current === from) {
+                _current_frame = insert_at;
+            } else if (from < was_current && insert_at >= was_current) {
+                _current_frame--;
+            } else if (from > was_current && insert_at <= was_current) {
+                _current_frame++;
+            }
+            this.emit("animation_changed");
+        });
+        connection.on("remote_frame_meta", (frame_idx, meta) => {
+            if (!doc.animation) return;
+            const frame = doc.animation.frames[frame_idx];
+            if (!frame) return;
+            if (meta.delay_ms !== undefined) frame.delay_ms = Math.max(0, meta.delay_ms);
+            if (meta.reveal !== undefined) frame.reveal = meta.reveal;
+            if (meta.scene_break !== undefined && frame_idx > 0) frame.scene_break = !!meta.scene_break;
+            this.emit("animation_changed");
+        });
     }
 
     get connection() {return connection;}
@@ -1470,6 +1568,7 @@ class TextModeDoc extends events.EventEmitter {
         doc.animation.frames.splice(after_idx + 1, 0, {layers: [bg_layer], delay_ms: 0, scene_break});
         this.goto_frame(after_idx + 1);
         this.emit("animation_changed");
+        if (connection && connection.animation_server) connection.frame_add(after_idx, scene_break);
     }
 
     delete_frame(idx) {
@@ -1479,6 +1578,7 @@ class TextModeDoc extends events.EventEmitter {
         _current_frame = -1;
         this.goto_frame(new_idx);
         this.emit("animation_changed");
+        if (connection && connection.animation_server) connection.frame_delete(idx);
     }
 
     move_frame(from, drop_before) {
@@ -1492,12 +1592,14 @@ class TextModeDoc extends events.EventEmitter {
         _current_frame = -1;
         this.goto_frame(insert_at);
         this.emit("animation_changed");
+        if (connection && connection.animation_server) connection.frame_move(from, drop_before);
     }
 
     set_frame_delay(idx, delay_ms) {
         if (!doc || !doc.animation) return;
         doc.animation.frames[idx].delay_ms = Math.max(0, delay_ms);
         this.emit("animation_changed");
+        if (connection && connection.animation_server) connection.frame_meta(idx, {delay_ms});
     }
 
     set_scene_break(idx, value) {
@@ -1505,6 +1607,7 @@ class TextModeDoc extends events.EventEmitter {
         if (idx === 0) return; // first frame is always a scene break
         doc.animation.frames[idx].scene_break = !!value;
         this.emit("animation_changed");
+        if (connection && connection.animation_server) connection.frame_meta(idx, {scene_break: !!value});
     }
 
     set_animation_fps(fps) {

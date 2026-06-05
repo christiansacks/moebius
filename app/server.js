@@ -1,6 +1,6 @@
 const ws = require("ws");
 const libtextmode = require("./libtextmode/libtextmode");
-const action =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, SET_BG: 21};
+const action =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, SET_BG: 21, FRAME_DRAW: 22, FRAME_ADD: 23, FRAME_DELETE: 24, FRAME_MOVE: 25, FRAME_META: 26};
 const status_types = {ACTIVE: 0, IDLE: 1, AWAY: 2, WEB: 3};
 const os = require("os");
 const url = require("url");
@@ -86,11 +86,24 @@ class Joint {
                 const id = this.data_store.length;
                 const users = this.connected_users();
                 this.data_store.push({user: {nick: msg.data.nick, group: msg.data.group, id: id, status: (msg.data.nick == undefined) ? status_types.WEB : status_types.ACTIVE}, ws: ws, closed: false});
+                const flat_doc = this.animation_mode ? {...this.doc, data: this.doc.animation.frames[0].layers[0].data} : this.doc;
                 if (msg.data.nick == undefined) {
-                    send(ws, action.CONNECTED, {id, doc: libtextmode.compress(this.doc)});
+                    send(ws, action.CONNECTED, {id, doc: libtextmode.compress(flat_doc)});
                     this.log("web joined", ip);
                 } else {
-                    send(ws, action.CONNECTED, {id, doc: libtextmode.compress(this.doc), users, chat_history: this.chat_history, status: status_types.ACTIVE});
+                    const response = {id, doc: libtextmode.compress(flat_doc), users, chat_history: this.chat_history, status: status_types.ACTIVE};
+                    if (this.animation_mode) {
+                        response.animation = {
+                            fps: this.doc.animation.fps,
+                            frames: this.doc.animation.frames.map(f => ({
+                                delay_ms: f.delay_ms,
+                                reveal: f.reveal || "inchworm",
+                                scene_break: f.scene_break,
+                                doc: libtextmode.compress({data: f.layers[0].data, columns: this.doc.columns, rows: this.doc.rows}),
+                            })),
+                        };
+                    }
+                    send(ws, action.CONNECTED, response);
                     this.log(`${msg.data.nick} has joined`, ip);
                     if (this.webhook) this.discord_join(msg.data.nick);
                 }
@@ -101,7 +114,7 @@ class Joint {
             }
         break;
         case action.DRAW:
-            if ((msg.data.x < this.doc.columns) && (msg.data.y < this.doc.rows)) {
+            if (!this.animation_mode && (msg.data.x < this.doc.columns) && (msg.data.y < this.doc.rows)) {
                 const block = Object.assign(msg.data.block);
                 this.doc.data[msg.data.y * this.doc.columns + msg.data.x] = block;
                 if (!this.doc.extended_colors && (block.fg_rgb || block.bg_rgb || block.fg_idx !== undefined || block.bg_idx !== undefined)) {
@@ -109,6 +122,66 @@ class Joint {
                 }
                 this.send_all_including_guests(ws, msg.type, msg.data);
             }
+        break;
+        case action.FRAME_DRAW: {
+            if (!this.animation_mode) break;
+            const {frame_idx, x, y, block} = msg.data;
+            const anim_frame = this.doc.animation.frames[frame_idx];
+            if (anim_frame && anim_frame.layers[0] && x < this.doc.columns && y < this.doc.rows) {
+                anim_frame.layers[0].data[y * this.doc.columns + x] = Object.assign(block);
+                if (!this.doc.extended_colors && (block.fg_rgb || block.bg_rgb || block.fg_idx !== undefined || block.bg_idx !== undefined)) {
+                    this.doc.extended_colors = true;
+                }
+                this.send_all_including_guests(ws, action.FRAME_DRAW, msg.data);
+            }
+        }
+        break;
+        case action.FRAME_ADD: {
+            if (!this.animation_mode) break;
+            const {after_idx, scene_break} = msg.data;
+            const frames = this.doc.animation.frames;
+            if (after_idx >= 0 && after_idx < frames.length) {
+                const layer_size = this.doc.columns * this.doc.rows;
+                frames.splice(after_idx + 1, 0, {
+                    delay_ms: 0, reveal: "inchworm", scene_break: !!scene_break,
+                    layers: [{name: "Background", visible: true, locked: false, opacity: 1.0, blend_mode: "normal", offset_x: 0, offset_y: 0, data: new Array(layer_size).fill(null).map(() => ({fg: 7, bg: 0, code: 32}))}],
+                });
+                this.send_all_including_guests(ws, action.FRAME_ADD, {after_idx, scene_break: !!scene_break});
+            }
+        }
+        break;
+        case action.FRAME_DELETE: {
+            if (!this.animation_mode) break;
+            const del_idx = msg.data.frame_idx;
+            const frames = this.doc.animation.frames;
+            if (del_idx > 0 && del_idx < frames.length && frames.length > 1) {
+                frames.splice(del_idx, 1);
+                this.send_all_including_guests(ws, action.FRAME_DELETE, {frame_idx: del_idx});
+            }
+        }
+        break;
+        case action.FRAME_MOVE: {
+            if (!this.animation_mode) break;
+            const {from, drop_before} = msg.data;
+            const frames = this.doc.animation.frames;
+            if (from >= 0 && from < frames.length && drop_before >= 0 && drop_before <= frames.length && drop_before !== from && drop_before !== from + 1) {
+                const [moved_frame] = frames.splice(from, 1);
+                frames.splice(drop_before > from ? drop_before - 1 : drop_before, 0, moved_frame);
+                this.send_all_including_guests(ws, action.FRAME_MOVE, {from, drop_before});
+            }
+        }
+        break;
+        case action.FRAME_META: {
+            if (!this.animation_mode) break;
+            const {frame_idx: meta_idx, delay_ms, reveal, scene_break: meta_sb} = msg.data;
+            const meta_frame = this.doc.animation.frames[meta_idx];
+            if (meta_frame) {
+                if (delay_ms !== undefined) meta_frame.delay_ms = Math.max(0, delay_ms);
+                if (reveal !== undefined) meta_frame.reveal = reveal;
+                if (meta_sb !== undefined && meta_idx > 0) meta_frame.scene_break = !!meta_sb;
+                this.send_all_including_guests(ws, action.FRAME_META, msg.data);
+            }
+        }
         break;
         case action.CHAT:
             if (this.data_store[msg.data.id].user.nick != msg.data.nick) this.data_store[msg.data.id].user.nick = msg.data.nick;
@@ -200,8 +273,9 @@ class Joint {
     async start() {
         this.hostname = os.hostname();
         this.doc = await libtextmode.read_file(this.file);
+        this.animation_mode = !!(this.doc.animation);
         this.wss = new ws.Server({noServer: true});
-        this.log(`started`);
+        this.log(`started${this.animation_mode ? " (animation mode)" : ""}`);
         hourly_saver.start();
     }
 
