@@ -4,7 +4,6 @@ const libtextmode = require("./libtextmode/libtextmode");
 const action =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, SET_BG: 21, FRAME_DRAW: 22, FRAME_ADD: 23, FRAME_DELETE: 24, FRAME_MOVE: 25, FRAME_META: 26, FRAME_CLONE: 27};
 const status_types = {ACTIVE: 0, IDLE: 1, AWAY: 2, WEB: 3};
 const os = require("os");
-const url = require("url");
 const server = require("http").createServer();
 const joints = {};
 const path = require("path");
@@ -336,7 +335,7 @@ function end_joint(path) {
 }
 
 server.on("upgrade", (req, socket, head) => {
-    const path = decodeURI(url.parse(req.url).pathname).toLowerCase();
+    const path = new URL(req.url, "http://x").pathname.toLowerCase();
     if (joints[path]) {
         const ip = req.connection.remoteAddress;
         joints[path].wss.handleUpgrade(req, socket, head, (ws) => joints[path].connection(ws, ip));
