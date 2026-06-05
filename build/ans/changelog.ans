@@ -1,6 +1,16 @@
 [0m
                  [1mChangelog[0m
 
+           Ver. 1.5.4 2026-06-05
+
+ [1mFeature: [0m.mob server mode for
+   collaboration of ANSImations
+    
+ [1mFix: [0mgeneral file handling and
+   error parsing.
+
+                    	 
+
            Ver. 1.5.3 2026-06-04
 
  [1mFeature: [0mANSImation differential
