@@ -15,7 +15,7 @@ let _stream_pos = 0;
 let _stream_parser = null;
 let _stream_bytes_per_tick = 200;
 let _stream_display_data = null;
-const actions =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, PASTE_AS_SELECTION: 17, ROTATE: 18, FLIP_X: 19, FLIP_Y: 20, SET_BG: 21, FRAME_DRAW: 22, FRAME_ADD: 23, FRAME_DELETE: 24, FRAME_MOVE: 25, FRAME_META: 26};
+const actions =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, PASTE_AS_SELECTION: 17, ROTATE: 18, FLIP_X: 19, FLIP_Y: 20, SET_BG: 21, FRAME_DRAW: 22, FRAME_ADD: 23, FRAME_DELETE: 24, FRAME_MOVE: 25, FRAME_META: 26, FRAME_CLONE: 27};
 const statuses = {ACTIVE: 0, IDLE: 1, AWAY: 2, WEB: 3};
 const modes = {EDITING: 0, SELECTION: 1, OPERATION: 2};
 let nick, group;
@@ -321,6 +321,9 @@ class Connection extends events.EventEmitter {
                 case actions.FRAME_META:
                     this.emit("remote_frame_meta", data.frame_idx, {delay_ms: data.delay_ms, reveal: data.reveal, scene_break: data.scene_break});
                     break;
+                case actions.FRAME_CLONE:
+                    this.emit("remote_frame_cloned", data.after_idx, data.delay_ms, data.frame_doc);
+                    break;
                 case actions.CHAT:
                     if (user) chat.chat(data.id, data.nick, data.group, data.text, data.time);
                     break;
@@ -381,6 +384,7 @@ class Connection extends events.EventEmitter {
     frame_delete(frame_idx) {this.send(actions.FRAME_DELETE, {frame_idx});}
     frame_move(from, drop_before) {this.send(actions.FRAME_MOVE, {from, drop_before});}
     frame_meta(frame_idx, meta) {this.send(actions.FRAME_META, {...meta, frame_idx});}
+    frame_clone(after_idx, delay_ms, frame_doc) {this.send(actions.FRAME_CLONE, {after_idx, delay_ms, frame_doc});}
     sauce(title, author, group, comments) {this.send(actions.SAUCE, {title, author, group, comments});}
     ice_colors(value) {this.send(actions.ICE_COLORS, {value});}
     use_9px_font(value) {this.send(actions.USE_9PX_FONT, {value});}
@@ -881,6 +885,15 @@ class TextModeDoc extends events.EventEmitter {
             if (meta.delay_ms !== undefined) frame.delay_ms = Math.max(0, meta.delay_ms);
             if (meta.reveal !== undefined) frame.reveal = meta.reveal;
             if (meta.scene_break !== undefined && frame_idx > 0) frame.scene_break = !!meta.scene_break;
+            this.emit("animation_changed");
+        });
+        connection.on("remote_frame_cloned", (after_idx, delay_ms, frame_doc) => {
+            if (!doc.animation) return;
+            const cell_doc = libtextmode.uncompress(frame_doc);
+            const bg_layer = libtextmode.make_layer("Background", doc.columns, doc.rows);
+            bg_layer.data = cell_doc.data;
+            doc.animation.frames.splice(after_idx + 1, 0, {layers: [bg_layer], delay_ms: delay_ms || 0, scene_break: false});
+            if (_current_frame > after_idx) _current_frame++;
             this.emit("animation_changed");
         });
     }
@@ -1571,6 +1584,10 @@ class TextModeDoc extends events.EventEmitter {
         doc.animation.frames.splice(idx + 1, 0, clone);
         this.goto_frame(idx + 1);
         this.emit("animation_changed");
+        if (connection && connection.animation_server) {
+            const frame_doc = libtextmode.compress({data: src.layers[0].data, columns: doc.columns, rows: doc.rows});
+            connection.frame_clone(idx, src.delay_ms, frame_doc);
+        }
     }
 
     add_blank_frame(after_idx, scene_break = false) {
@@ -1612,6 +1629,15 @@ class TextModeDoc extends events.EventEmitter {
         doc.animation.frames[idx].delay_ms = Math.max(0, delay_ms);
         this.emit("animation_changed");
         if (connection && connection.animation_server) connection.frame_meta(idx, {delay_ms});
+    }
+
+    set_frame_reveal(idx, reveal) {
+        if (!doc || !doc.animation) return;
+        const frame = doc.animation.frames[idx];
+        if (!frame) return;
+        frame.reveal = reveal;
+        this.emit("animation_changed");
+        if (connection && connection.animation_server) connection.frame_meta(idx, {reveal});
     }
 
     set_scene_break(idx, value) {

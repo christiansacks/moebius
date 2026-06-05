@@ -1,7 +1,7 @@
 const ws = require("ws");
 const fs = require("fs");
 const libtextmode = require("./libtextmode/libtextmode");
-const action =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, SET_BG: 21, FRAME_DRAW: 22, FRAME_ADD: 23, FRAME_DELETE: 24, FRAME_MOVE: 25, FRAME_META: 26};
+const action =  {CONNECTED: 0, REFUSED: 1, JOIN: 2, LEAVE: 3, CURSOR: 4, SELECTION: 5, RESIZE_SELECTION: 6, OPERATION: 7, HIDE_CURSOR: 8, DRAW: 9, CHAT: 10, STATUS: 11, SAUCE: 12, ICE_COLORS: 13, USE_9PX_FONT: 14, CHANGE_FONT: 15, SET_CANVAS_SIZE: 16, SET_BG: 21, FRAME_DRAW: 22, FRAME_ADD: 23, FRAME_DELETE: 24, FRAME_MOVE: 25, FRAME_META: 26, FRAME_CLONE: 27};
 const status_types = {ACTIVE: 0, IDLE: 1, AWAY: 2, WEB: 3};
 const os = require("os");
 const url = require("url");
@@ -181,6 +181,18 @@ class Joint {
                 if (reveal !== undefined) meta_frame.reveal = reveal;
                 if (meta_sb !== undefined && meta_idx > 0) meta_frame.scene_break = !!meta_sb;
                 this.send_all_including_guests(ws, action.FRAME_META, msg.data);
+            }
+        }
+        break;
+        case action.FRAME_CLONE: {
+            if (!this.animation_mode) break;
+            const {after_idx: clone_idx, delay_ms: clone_delay, frame_doc} = msg.data;
+            if (clone_idx >= 0 && clone_idx < this.doc.animation.frames.length) {
+                const cell_doc = libtextmode.uncompress(frame_doc);
+                const bg_layer = libtextmode.make_layer("Background", this.columns, this.rows);
+                bg_layer.data = cell_doc.data;
+                this.doc.animation.frames.splice(clone_idx + 1, 0, {layers: [bg_layer], delay_ms: clone_delay || 0, scene_break: false});
+                this.send_all_including_guests(ws, action.FRAME_CLONE, msg.data);
             }
         }
         break;
