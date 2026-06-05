@@ -87,7 +87,7 @@ class Joint {
                 const id = this.data_store.length;
                 const users = this.connected_users();
                 this.data_store.push({user: {nick: msg.data.nick, group: msg.data.group, id: id, status: (msg.data.nick == undefined) ? status_types.WEB : status_types.ACTIVE}, ws: ws, closed: false});
-                const flat_doc = this.animation_mode ? {...this.doc, data: this.doc.animation.frames[0].layers[0].data} : this.doc;
+                const flat_doc = this.animation_mode ? {...this.doc, palette: this.doc.palette || libtextmode.ega, data: this.doc.animation.frames[0].layers[0].data} : this.doc;
                 if (msg.data.nick == undefined) {
                     send(ws, action.CONNECTED, {id, doc: libtextmode.compress(flat_doc)});
                     this.log("web joined", ip);
@@ -277,7 +277,7 @@ class Joint {
         const layer_size = columns * rows;
         const layer = {name: "Background", visible: true, locked: false, opacity: 1.0, blend_mode: "normal", offset_x: 0, offset_y: 0, data: new Array(layer_size).fill(null).map(() => ({fg: 7, bg: 0, code: 32}))};
         const animation = {fps: 8, frames: [{delay_ms: 0, reveal: "inchworm", scene_break: true, layers: [layer]}]};
-        return {columns, rows, title: "", author: "", group: "", date: "", comments: "", font_name: "IBM VGA", use_9px_font: false, ice_colors: false, extended_colors: false, palette: undefined, layers: animation.frames[0].layers, animation};
+        return {columns, rows, title: "", author: "", group: "", date: "", comments: "", font_name: "IBM VGA", use_9px_font: false, ice_colors: false, extended_colors: false, palette: libtextmode.ega, layers: animation.frames[0].layers, animation};
     }
 
     async start() {
