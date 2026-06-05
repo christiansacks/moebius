@@ -230,20 +230,25 @@ class Connection extends events.EventEmitter {
                 this.join(data.id, nick, group, data.status);
                 this.ready = true;
                 let connected_doc = libtextmode.uncompress(data.doc);
-                if (data.animation) {
-                    this.animation_server = true;
-                    const frames = data.animation.frames.map(f => {
-                        const cell_doc = libtextmode.uncompress(f.doc);
-                        return {
-                            delay_ms: f.delay_ms,
-                            reveal: f.reveal || "inchworm",
-                            scene_break: f.scene_break,
-                            layers: [{name: "Background", visible: true, locked: false, opacity: 1.0, blend_mode: "normal", offset_x: 0, offset_y: 0, data: cell_doc.data}],
-                        };
-                    });
-                    connected_doc.animation = {fps: data.animation.fps, frames};
-                    connected_doc.layers = frames[0].layers;
-                } else {
+                try {
+                    if (data.animation) {
+                        this.animation_server = true;
+                        const frames = data.animation.frames.map(f => {
+                            const cell_doc = libtextmode.uncompress(f.doc);
+                            return {
+                                delay_ms: f.delay_ms,
+                                reveal: f.reveal || "inchworm",
+                                scene_break: f.scene_break,
+                                layers: [{name: "Background", visible: true, locked: false, opacity: 1.0, blend_mode: "normal", offset_x: 0, offset_y: 0, data: cell_doc.data}],
+                            };
+                        });
+                        connected_doc.animation = {fps: data.animation.fps, frames};
+                        connected_doc.layers = frames[0].layers;
+                    } else {
+                        this.animation_server = false;
+                    }
+                } catch (e) {
+                    console.error("Error building animation doc from server:", e);
                     this.animation_server = false;
                 }
                 this.emit("connected", connected_doc);
@@ -778,11 +783,18 @@ class TextModeDoc extends events.EventEmitter {
         this.emit("connecting");
         connection = new Connection(server, pass);
         connection.on("connected", async (remote_doc) => {
-            this.emit("connected");
-            doc = remote_doc;
-            await this.start_rendering();
-            this.emit("new_document");
-            this.ready();
+            try {
+                this.emit("connected");
+                doc = remote_doc;
+                _current_frame = 0;
+                active_layer = 0;
+                await this.start_rendering();
+                this.emit("new_document");
+            } catch (e) {
+                console.error("Error during server connection setup:", e);
+            } finally {
+                this.ready();
+            }
         });
         connection.on("refused", () => this.emit("refused"));
         connection.on("disconnected", () => this.emit("disconnected"));
