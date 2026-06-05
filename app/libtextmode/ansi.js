@@ -517,7 +517,7 @@ function detect_columns(bytes) {
         }
         i++;
     }
-    if (cur_line > max_line) max_line = cur_line;
+    if (!has_newlines && cur_line > max_line) max_line = cur_line;
 
     // File has explicit newlines and content wider than 80 — use max line length
     if (has_newlines && max_line > 80) return max_line;

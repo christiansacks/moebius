@@ -271,8 +271,8 @@ function init() {
         update_strip();
     });
     $("anim_reveal").addEventListener("change", () => {
-        const frame = doc.animation && doc.animation.frames[doc.current_frame];
-        if (frame) { frame.reveal = $("anim_reveal").value; update_strip(); }
+        doc.set_frame_reveal(doc.current_frame, $("anim_reveal").value);
+        update_strip();
     });
     $("anim_speed").addEventListener("change", () => {
         doc.stream_speed = parseInt($("anim_speed").value);
