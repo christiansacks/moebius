@@ -1,0 +1,14 @@
+node_modules
+.git
+app/document
+app/windows
+app/web_client
+app/menu.js
+app/moebius.js
+app/prefs.js
+app/senders.js
+app/window.js
+build
+dist
+*.md
+electron-builder.yml

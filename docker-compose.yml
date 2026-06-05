@@ -1,0 +1,14 @@
+services:
+  moebius-server:
+    build: .
+    ports:
+      - "${MOEBIUS_PORT:-8000}:8000"
+    volumes:
+      - "${DATA_DIR:-./data}:/data"
+    environment:
+      MOEBIUS_FILE:    /data/${MOEBIUS_FILENAME:-server.mob}
+      MOEBIUS_PASS:    ${MOEBIUS_PASS:-}
+      MOEBIUS_PORT:    ${MOEBIUS_PORT:-8000}
+      MOEBIUS_COLUMNS: ${MOEBIUS_COLUMNS:-80}
+      MOEBIUS_ROWS:    ${MOEBIUS_ROWS:-25}
+    restart: unless-stopped
