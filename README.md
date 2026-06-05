@@ -49,6 +49,44 @@ The following parameters can be set:
 * `--quiet=true/false` suppress console output after the server has been started
 * `--discord=url` Mirrors server joins and chat activity via a [Discord Webhook](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks)
 
+### Running the server with Docker
+
+If you'd rather not install Node.js on your host, a Docker image is provided.
+
+**Prerequisites:** [Docker Engine](https://docs.docker.com/engine/install/) with the Compose plugin (included in Docker Desktop).
+
+**1. Create a data directory** alongside the repo — this is where your `.mob` or `.ans` file lives and persists across container restarts:
+```
+mkdir data
+```
+
+**2. Configure** by creating a `.env` file (all values are optional — defaults are shown):
+```
+MOEBIUS_PASS=yourpassword       # leave blank for open access
+MOEBIUS_FILENAME=server.mob     # file to serve (created automatically if missing)
+MOEBIUS_PORT=8000               # WebSocket port
+MOEBIUS_COLUMNS=80              # canvas width  (new files only)
+MOEBIUS_ROWS=25                 # canvas height (new files only)
+DATA_DIR=./data                 # path to your data directory
+```
+
+**3. Build and start:**
+```
+docker compose up -d --build
+```
+
+The first run builds the image; subsequent starts are instant. To follow logs:
+```
+docker compose logs -f
+```
+
+**4. Connect from Moebius²** via **Network → Connect to Server** and enter `yourhost:8000`.
+
+To stop:
+```
+docker compose down
+```
+
 ## Acknowledgements
 * Uses modified Google's Material Icons. https://material.io/icons/
 * Contains ANSI art by Alpha King (Blocktronics), Filth (Blocktronics) and burps (FUEL)
