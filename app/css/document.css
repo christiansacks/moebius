@@ -228,6 +228,19 @@ body.dark .tool.selected {
     padding: 10px;
     gap: 8px;
     overflow: hidden;
+    position: relative;
+}
+#font_preview_watermark {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    font-size: 13px;
+    font-family: monospace;
+    color: rgba(170,170,170,0.9);
+    background: rgba(0,0,0,0.65);
+    padding: 3px 8px;
+    border-radius: 3px;
+    pointer-events: none;
 }
 #font_preview_text {
     padding: 6px 10px;

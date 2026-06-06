@@ -134,6 +134,7 @@ async function render_picker_preview() {
         ctx.textAlign = "center";
         ctx.fillText("Select a font to preview", canvas.width / 2, canvas.height / 2);
         ctx.textAlign = "left";
+        update_watermark();
         return;
     }
 
@@ -169,6 +170,21 @@ async function render_picker_preview() {
 
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(src, 0, 0, dw, dh);
+    update_watermark();
+}
+
+function update_watermark() {
+    const wm = $("font_preview_watermark");
+    if (!wm) return;
+    if (current_entry && current_font) {
+        const actual_rows = current_font.chars.size > 0
+            ? Math.max(...[...current_font.chars.values()].map(r => r.length))
+            : current_font.block_size;
+        wm.textContent = `${path.basename(current_entry.file)}  ·  ${actual_rows} rows`;
+        wm.classList.remove("hidden");
+    } else {
+        wm.classList.add("hidden");
+    }
 }
 
 // ── Font list ─────────────────────────────────────────────────────────────────
