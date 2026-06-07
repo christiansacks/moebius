@@ -1,0 +1,215 @@
+= Creating Animations in Moebius² =
+
+Moebius² supports frame-based animations saved in the native <code>.mob</code> format, with export to Animated PNG
+(APNG) and ANSImation (<code>.ans</code>) for sharing.
+
+== Enabling Animation Mode ==          
+
+Animation mode is off by default so that regular single-image editing is unaffected.
+
+To enable it:
+
+* Go to '''View → Animation Mode''', or
+* Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>
+
+The '''Animation Panel''' will appear on the right side of the window (below the Layers panel). Your existing canvas automatically becomes Frame 1.
+
+To disable animation mode, use the same menu item or shortcut. Note that disabling it collapses all frames back to a single image (the current frame is kept).
+
+== The Animation Panel ==
+
+The Animation Panel contains everything you need to manage frames.
+
+=== Transport Controls ===
+
+{| class="wikitable"
+! Button !! Action
+|-
+| ⏮ || Jump to first frame
+|-
+| ◀ || Previous frame
+|-
+| ▶ || Play / Pause (flip-book style)
+|-
+| ▶̃ || Play as ANSImation (streaming, terminal-style)
+|-
+| ▶ || Next frame
+|-
+| ⏭ || Jump to last frame
+|}
+
+The '''Frame X / Y''' counter shows your current position in the sequence.
+
+=== Frame Settings ===
+
+Each frame has its own settings, editable when that frame is selected:
+
+{| class="wikitable"
+! Setting !! Description
+|-
+| '''FPS''' || Global playback speed in frames per second (1–60). Applies to all frames that don't have a per-frame delay override. Default: 8 fps.
+|-
+| '''Delay''' || Per-frame delay in milliseconds. When set to a non-zero value, this overrides the global FPS for
+that specific frame. Useful for pauses or variable-speed effects. Leave at 0 to use the global FPS.
+|-
+| '''Reveal''' || The transition effect used when playing this frame as an ANSImation stream. See [[#Reveal Effects|Reveal Effects]] below.
+|-
+| '''Scene Break''' || When checked, this frame starts a new scene — the canvas is fully cleared before this frame is drawn during stream playback. Disabled on Frame 1 (always a scene break). See [[#Scenes vs Sub-frames|Scenes vs Sub-frames]] below.
+|}
+
+=== Adding Frames ===
+
+Three buttons add new frames after the currently selected frame:
+
+{| class="wikitable"
+! Button !! What it creates
+|-
+| '''+ Clone''' || A full copy of the current frame. The clone starts as a sub-frame (no scene break). Use this as the starting point for incremental changes — the classic animation workflow.
+|-
+| '''+ Sub''' || A blank frame marked as a sub-frame (no scene break). Use when you want to paint something fresh that builds on a running scene.
+|-
+| '''+ Scene''' || A blank frame marked as a scene break. The canvas clears before this frame plays, starting a new scene from scratch.
+|}
+
+=== Deleting and Reordering ===
+
+* '''✕ Del''' removes the current frame. The button is disabled when only one frame exists.
+* Frames can be '''dragged and dropped''' to reorder them — click and drag any frame card in the strip at the bottom of the panel.
+
+=== The Frame Strip ===
+
+The strip at the bottom of the Animation Panel shows a card for every frame:
+
+* The '''active frame''' is highlighted.
+* '''Scene break''' frames have a distinct border colour.
+* Each card shows the frame number and either its delay (in ms) or its reveal effect name.
+* '''Click''' a card to jump to that frame.
+* '''Drag''' a card left or right to reorder it.
+* Scroll the strip horizontally with the mouse wheel.
+
+=== Resizing and Docking ===
+
+* Drag the resize handle at the top of the panel to make it taller or shorter.
+* Click the '''⇅''' button to move the panel to the '''bottom''' of the window (useful on wide monitors). Click '''⇄''' to move it back to the right panel.
+
+== Scenes vs Sub-frames ==
+
+Understanding scenes and sub-frames is key to getting the most out of ANSImation export.
+
+; Scene break frame
+: The canvas is wiped blank before this frame is drawn during stream playback. Frame 1 is always a scene break.  Shown with a distinct colour in the frame strip.
+
+; Sub-frame
+: Builds on whatever was already on screen. During stream playback, only the differences (the new cells) are written — giving a smooth incremental-draw or overlay effect.
+
+'''Typical workflows:'''
+
+* '''Flip-book animation''' — each frame is a scene break with its own fully-drawn image. Plays back fast and is best exported as APNG.
+* '''ANSImation / typewriter effect''' — Frame 1 is a scene, subsequent frames are sub-frames that each reveal a little more of the image, simulating the look of a terminal drawing in real time.
+* '''Mixed''' — multiple scenes each consisting of several sub-frame steps.
+
+== Playback Modes ==
+
+=== Flip Playback (▶) ===
+
+Cycles through all frames at the configured FPS (or per-frame delay). Each frame is displayed in full. This is your standard animation preview and is what APNG export captures.
+
+=== ANSImation Streaming (▶̃) ===
+
+Replays the animation as a raw ANSI byte stream, the way it would look in a classic terminal. The '''Speed''' dropdown controls how fast the bytes are fed:
+
+{| class="wikitable"
+! Speed !! Description
+|-
+| 2400 baud || Very slow — authentic retro BBS speed
+|-
+| 9600 baud || Slow — still noticeably character-by-character
+|-
+| Slow || Relaxed streaming pace
+|-
+| Medium || Comfortable viewing speed
+|-
+| Fast || Near-instant with visible flow
+|-
+| Max || As fast as the renderer can go
+|}
+
+A progress bar appears at the bottom of the panel during streaming. Clicking ▶̃ again stops playback and restores the canvas to the current editing frame.
+
+== Reveal Effects ==
+
+Each frame can have a reveal effect applied during ANSImation stream playback. The effect controls how the frame's content is ''written'' to the screen.
+
+{| class="wikitable"
+! Effect !! Description
+|-
+| Inchworm || Default. Draws left-to-right, top-to-bottom, like a terminal cursor.
+|-
+| Instant || The entire frame appears at once with no incremental drawing.
+|-
+| Wipe Down || Reveals the frame top-to-bottom in rows.
+|-
+| Wipe Up || Reveals the frame bottom-to-top.
+|-
+| Wipe Left || Reveals right-to-left by column.
+|-
+| Wipe Right || Reveals left-to-right by column.
+|-
+| Diagonal || Reveals along a diagonal sweep.
+|-
+| Starburst || Expands outward from the centre.
+|-
+| Scramble || Reveals cells in a random order.
+|-
+| Checkerboard || Reveals in a checkerboard pattern.
+|}
+
+Reveal effects only apply during '''ANSImation stream playback''' and ANSImation export. They have no effect during flip playback or APNG export.
+
+== Typical Animation Workflow ==
+
+=== Simple Flip-Book ===
+
+# Enable Animation Mode (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>).
+# Draw your first frame as normal.
+# Click '''+ Clone''' to create a copy, then make your changes.
+# Repeat step 3 for each additional frame.
+# Set '''FPS''' to taste (8–12 is typical).
+# Press ▶ to preview.
+# Export via '''File → Export As Animated PNG…''' (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>).
+
+=== ANSImation / Scrolling Reveal ===
+
+# Enable Animation Mode.
+# Draw the final state of your image on Frame 1 — this is your ''starting'' scene.
+# Click '''+ Sub''' to add sub-frames. On each sub-frame, draw or paint the next incremental step.
+# For each sub-frame, choose a '''Reveal''' effect if desired.
+# Use '''+ Scene''' whenever you want to cut to a completely new image.
+# Preview with ▶̃ and adjust '''Speed''' and '''Delay''' values.
+# Export via '''File → Export As ANSImation…''' (saves as <code>.ans</code>).
+
+== Exporting ==
+
+{| class="wikitable"
+! Export format !! Menu item !! Shortcut !! Notes
+|-
+| Animated PNG (APNG) || File → Export As Animated PNG… || <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> || Works
+in any animation mode. Captures all frames at their configured FPS/delay. Widely supported in browsers and image
+viewers.
+|-
+| ANSImation (<code>.ans</code>) || File → Export As ANSImation… || — || Only available in animation mode. Exports the raw ANSI byte stream with reveal effects applied. For playback in terminal viewers, BBS software, and ANSI players.
+|-
+| Static PNG || File → Export As PNG… || <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> || Exports the current frame only as a static image.
+|}
+
+The native <code>.mob</code> file format always saves all frames, timing, reveal effects, and scene break information, so you can continue editing at any time.
+
+== Collaborative Animation ==
+
+When connected to a Moebius² server that has animation mode enabled, frame operations (add, clone, delete, reorder, meta changes) are synchronised to all connected users in real time. Each user sees the same frame strip and can draw on any frame.
+
+See [[Moebius²#Moebius²_Server|Moebius² Server]] for server setup instructions.
+
+[[Category:Moebius²]]
+[[Category:ANSImation]]
+

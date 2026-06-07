@@ -1,0 +1,148 @@
+= Working with Layers in Moebius² =
+
+Moebius² supports a multi-layer workflow similar to image editors like Photoshop. Layers let you work on different parts of an image independently, combine them with blend modes and opacity, and non-destructively experiment without permanently altering what's underneath.
+
+Every document starts with a single layer called '''Background'''. Layers are only preserved in the native <code>.mob</code> format — saving as <code>.ans</code>, <code>.bin</code>, or <code>.xbin</code> automatically
+flattens all layers to the composited result.
+
+== The Layers Panel ==
+
+The Layers Panel lives on the right side of the window, below the preview area. If it's not visible, show it with '''View → Show Layers Panel''' (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>).
+
+Drag the resize handle at the top edge of the panel to make it taller or shorter.
+
+=== Reading the Layer List ===
+
+Layers are displayed top-to-bottom in the list, matching their visual stacking order — the topmost layer in the list paints over everything below it. The '''active layer''' (the one you're currently drawing on) is highlighted.
+
+Each row in the list shows three controls:
+
+{| class="wikitable"
+! Control !! Symbol !! What it does
+|-
+| Visibility toggle || ● (lit) / ● (dim) || Click to show or hide the layer. Hidden layers are excluded from the composited view and from all exports.
+|-
+| Lock toggle || ■ (locked) / □ (unlocked) || Click to lock or unlock. A locked layer cannot be drawn on or edited, but remains visible.
+|-
+| Name || — || The layer's name. Double-click to rename inline. Press <kbd>Enter</kbd> to confirm or <kbd>Escape</kbd> to cancel. You can also rename via the right-click context menu, or press <kbd>F2</kbd> when the layer item is focused.
+|}
+
+=== Toolbar Buttons ===
+
+The row of buttons in the panel header acts on the active layer:
+
+{| class="wikitable"
+! Button !! Label !! Action !! Shortcut
+|-
+| + || Add Layer || Add a new blank transparent layer above the active layer ||
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd>
+|-
+| ▲ || Move Layer Up || Move the active layer one position higher in the stack || <kbd>Ctrl</kbd>+<kbd>Page Up</kbd>
+|-
+| ▼ || Move Layer Down || Move the active layer one position lower in the stack || <kbd>Ctrl</kbd>+<kbd>Page Down</kbd>
+|-
+| ⊕ || Merge Down || Bake the active layer into the one directly below it ||
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>
+|-
+| ⊞ || Flatten All Layers || Composite all layers into a single Background layer ||
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>
+|-
+| × || Delete Layer || Delete the active layer (disabled when only one layer exists) || —
+|}
+
+=== Layer Controls ===
+
+Below the toolbar, two controls apply to the active layer:
+
+* '''Blend Mode''' — a dropdown controlling how this layer's cells are blended with the layers below. See [[#Blend Modes|Blend Modes]] below.
+* '''Opacity''' — a slider and number field (0–100%). At 100% the layer is fully opaque; lower values blend it with the layers beneath. See [[#Opacity and Blending|Opacity and Blending]] below.
+
+== The Layer Menu ==
+
+All layer operations are also available from the '''Layer''' menu in the menu bar, with the same keyboard shortcuts as listed above. The menu additionally includes '''Duplicate Layer''' (<kbd>Ctrl</kbd>+<kbd>J</kbd>), which creates an exact copy of the active layer immediately above it.
+
+== Right-Click Context Menu ==
+
+Right-clicking any layer in the list opens a context menu with: Rename, Duplicate, Move Up, Move Down, Merge Down, and Delete. This is handy when you want to act on a layer that is not currently the active one.
+
+== Reordering by Drag ==
+
+Click and drag any layer row up or down in the list to reorder it. A drop indicator line shows where it will land.  Release to confirm. The active layer follows the move.
+
+== How Transparency Works ==
+
+New layers added with the + button start completely transparent — every cell is empty (null). Empty cells show through to the layer below, so you only need to paint the parts you care about.
+
+The Background layer at the bottom of the stack uses solid black space cells as its floor. Layers above it are composited on top, with empty cells revealing whatever is beneath.
+
+This means you can, for example:
+* Draw a background scene on the Background layer
+* Add a new layer and paint TDF font text on top
+* Adjust the font layer's opacity or blend mode without touching the background
+
+== Opacity and Blending ==
+
+When a layer has '''opacity below 100%''' or a '''non-Normal blend mode''', Moebius² blends its cells with the layers beneath at the character-cell level. The blending works by:
+
+# Converting the foreground and background colours of both cells to RGB values using the document's palette
+# Applying the blend formula and opacity
+# Mapping the resulting RGB back to the nearest available palette colour
+
+Because ANSI art is constrained to a palette (16 EGA colours, or 256/true colour in extended mode), the result is an approximation. In 256-colour or true-colour mode the approximation is much more accurate since there are far more colours to snap to.
+
+=== Blend Modes ===
+
+{| class="wikitable"
+! Mode !! Description !! Typical use
+|-
+| '''Normal''' || The top layer's cells replace those below (subject to opacity) || Default for all layers; use for standard stacking
+|-
+| '''Multiply''' || Multiplies the colour values of both layers — always produces a darker result || Darkening effects, shadows, overlaying dark detail onto a background
+|-
+| '''Screen''' || The inverse of Multiply — always produces a lighter result || Glows, lighting effects, brightening a base layer
+|-
+| '''Overlay''' || Combines Multiply and Screen: dark areas get darker, light areas get lighter — increases contrast || Adding texture or contrast without a flat colour shift
+|}
+
+Blend modes only have a visible effect when the layer has cells that overlap with content below. A blank layer (all transparent) produces no visible change regardless of blend mode.
+
+== Merging and Flattening ==
+
+=== Merge Down (⊕) ===
+
+Permanently bakes the active layer into the layer directly below it, applying all opacity and blend mode settings as part of the merge. The active layer is removed and the result lives in the lower layer. This is not undoable after switching layers — use it when you are happy with the composited result and want to simplify the stack.
+
+=== Flatten All Layers (⊞) ===
+
+Composites every visible layer into a single new '''Background''' layer. The result is exactly what the canvas looks like on screen. All layer structure is lost. Use this before saving in a format that does not support layers (<code>.ans</code>, <code>.bin</code>, etc.), or to simplify a complex stack before continuing work.
+
+== Important Caveats ==
+
+; Switching layers resets undo history
+: Clicking a different layer clears the undo/redo history for the current editing session. Make sure you're satisfied with your changes on a layer before switching away.
+
+; Non-mob formats flatten on save
+: Saving as <code>.ans</code>, <code>.bin</code>, or <code>.xbin</code> writes the composited result of all visible layers. The per-layer data is not written to those formats. Only <code>.mob</code> files preserve the full layer stack.
+
+; Locked layers are still visible and composited
+: Locking a layer only prevents editing — it does not hide it or remove it from the composite. To exclude a layer from the output, hide it with the visibility toggle instead.
+
+; The Background layer cannot be moved below another layer
+: There is always at least one layer. The delete button and Move Down button are disabled when they would leave the stack empty or move below the bottom.
+
+== Typical Workflows ==
+
+=== Separating Elements ===
+Draw your background on the Background layer. Add a new layer (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd>) for each distinct element — text, borders, foreground art. This lets you reposition, hide, or restyle each piece independently.
+
+=== Non-Destructive Colour Overlay ===
+Draw a full-colour image on the Background layer. Add a layer above it, fill it with a solid colour at reduced opacity (e.g. 40%) with the Multiply or Screen blend mode to tint the image without altering the original cells.
+
+=== Safe Experimentation ===
+Duplicate the active layer (<kbd>Ctrl</kbd>+<kbd>J</kbd>) before making a risky edit. If the result isn't what you wanted, delete the duplicate and the original is untouched.
+
+=== TDF Font Overlay ===
+Keep background art on the Background layer. Switch to the font tool, add a new layer, and type your TDF text there. You can adjust opacity to let the background show through the font characters, or use Multiply to blend the font colours with the art below.
+
+[[Category:Moebius²]]
+[[Category:Layers]]

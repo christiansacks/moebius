@@ -1,0 +1,106 @@
+= Using TDF Fonts in Moebius² =
+
+TDF (TheDraw Font) is a font format originating from the classic ANSI art editor TheDraw. TDF files contain one or more named fonts, each defining a set of characters rendered as blocks of ANSI art. Moebius² includes a full TDF font tool that lets you click anywhere on the canvas and type text in any loaded TDF font.
+
+== Font Types ==
+
+TDF fonts come in three types, which affects how colours are handled:
+
+{| class="wikitable"
+! Type !! Description !! Colour behaviour
+|-
+| '''Outline''' || Characters defined by block-drawing characters with no embedded colour || Moebius² uses your current foreground and background colour
+|-
+| '''Block''' || Characters made of filled block characters || Moebius² uses your current foreground and background colour
+|-
+| '''Colour''' || Characters have colour data embedded in the font itself || Colours are fixed by the font; FG/BG swatches are hidden
+|}
+
+== Setting Up Your Font Folder ==
+
+Moebius² does not bundle a large TDF font library — you point it at a folder on your machine that contains <code>.tdf</code> files. You can download an [individual font or the complete set here](https://www.roysac.com/thedrawfonts-tdf.html)
+
+# Activate the font tool (see [[#Activating the Font Tool|below]]).
+# Click '''Choose Font…''' in the TDF Fonts panel, or press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>.
+# In the font picker, click '''Browse folder…''' at the top right.
+# Select the folder that contains your <code>.tdf</code> files. This can be a flat folder or one with subfolders — the picker supports folder navigation.
+
+Moebius² remembers the folder between sessions. Subfolders appear at the top of the font list in brackets (e.g. <code>[Blocktronics]</code>); click one to navigate into it, and click <code>[..]</code> to go back up.
+
+A good source of TDF fonts is the [https://16colo.rs 16colors] archive and various BBS-era font packs.
+
+== Activating the Font Tool ==
+
+Click the '''TDF Font Text Tool''' button in the left sidebar (the bottom tool in the tools column). The TDF Fonts panel appears on the right side of the window.
+
+When the font tool is active, all keyboard input is directed to the canvas for font text entry — normal editing shortcuts are suspended until you switch to another tool.
+
+== The TDF Fonts Panel ==
+
+The panel on the right shows:
+
+* The '''name''' of the currently selected font (or "No font selected").
+* A '''Choose Font…''' button to open the font picker dialog.
+* '''FG''' and '''BG''' colour swatches (hidden for colour fonts — see [[#Font Types|Font Types]] above). Click a swatch to change the colour used when stamping text with outline or block fonts.
+
+The panel can be '''resized''' by dragging the handle at its top edge. Clicking the '''TDF Fonts''' header moves the panel above or below the Layers panel — useful if you want it closer to the top of the right column.
+
+== The Font Picker Dialog ==
+
+Open the picker via '''Choose Font…''' or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>. The dialog is split into two halves.
+
+=== Left: Font List ===
+
+* All fonts in the current folder are listed alphabetically.
+* Subfolders appear at the top in brackets.
+* Type in the '''Search fonts…''' box to filter the list by font name in real time. Searching skips into all fonts in the current folder — subdirectory entries are hidden during a search.
+* '''Click''' a font name to select it and update the preview immediately.
+* Use <kbd>↑</kbd> / <kbd>↓</kbd> arrow keys to step through the list (works whether focus is in the search box or anywhere in the dialog).
+* Press <kbd>Escape</kbd> to close the dialog without changing the font.
+
+=== Right: Preview ===
+
+* Type any text into the input field at the top (default: "Moebius Rulez") to preview it in the selected font.
+* The preview updates live as you type or change fonts.
+* For outline and block fonts, the preview uses your current foreground and background colours — change them in the palette and the preview refreshes automatically.
+* A '''watermark''' in the lower-right corner of the preview shows the font's filename and its row height (e.g. <code>misfits.tdf  ·  7 rows</code>). This is useful for judging which fonts will fit your canvas.
+
+Clicking outside the dialog closes it. The dialog can be repositioned by dragging its title bar.
+
+== Typing Text on the Canvas ==
+
+# With the font tool active and a font selected, '''click anywhere on the canvas''' to place the text cursor.
+# '''Type normally''' — each keystroke stamps the corresponding TDF character onto the canvas at the cursor position.
+# The cursor advances automatically after each character, respecting the font's spacing.
+# If a character would run off the right edge of the canvas, the cursor wraps to the next line down.
+# Press <kbd>Enter</kbd> to move to the start of the next line manually.
+# Press <kbd>Backspace</kbd> to remove the last stamped character and return the cursor to its previous position.
+# Click a new position on the canvas at any time to move the cursor there and start a new text run.
+
+Text is stamped directly onto the active layer as normal ANSI blocks — it becomes part of the canvas and can be edited with any other tool afterwards.
+
+=== Notes on backspace ===
+
+Backspace steps back through the characters typed ''since you last clicked on the canvas''. Clicking to reposition the cursor resets this history. Undo (<kbd>Ctrl</kbd>+<kbd>Z</kbd>) also works if you need to go further back.
+
+== Colour Fonts vs Outline/Block Fonts ==
+
+; Colour fonts
+: The colours are baked into the font definition. The FG/BG swatches in the TDF Fonts panel are hidden. What you see in the preview is what gets stamped — you cannot change the colours.
+
+; Outline and block fonts
+: The font characters are drawn using your active foreground and background colours. Change FG or BG in the palette (or via the swatches in the TDF Fonts panel) and the preview updates immediately. The next character you type will use the current colours, so you can mix colours mid-word by changing FG/BG between keystrokes.
+
+== Multiple Fonts in One .TDF File ==
+
+A single <code>.tdf</code> file can contain more than one font. Each font inside the file appears as a separate entry in the font list with its own name. The watermark in the preview shows the filename for all of them, so you can tell which file they came from.
+
+== Tips ==
+
+* The row height shown in the preview watermark tells you how many canvas rows the font will consume. A 5-row font on a standard 80×25 canvas gives you five lines of text; a 16-row font only fits once.
+* Colour fonts from classic BBS packs often use the full 16-colour EGA palette. If your document is in 256-colour or true-colour mode, the colours will be preserved.
+* You can layer TDF text on top of existing art — stamp on a higher layer to keep the background intact and use the layer blend modes to integrate the text.
+* Use <kbd>Ctrl</kbd>+<kbd>Z</kbd> generously while laying out text — each character stamp is a discrete undoable action.
+
+[[Category:Moebius²]]
+[[Category:TDF Fonts]]

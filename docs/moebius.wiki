@@ -1,0 +1,151 @@
+
+[[File:Moebius-screenshot2.png|frameless|Moebius² Screenshot]]
+
+= Moebius² =
+
+Moebius² is the modern realisation of an ANSI Editor, with true colour support; for MacOS, Linux and Windows. The
+major feature that differentiates it from [https://github.com/blocktronics/pablodraw PabloDraw] is the 'half-block'
+brush which allows editing in a style closer to Photoshop than a text editor, although you can still use the
+function and cursor keys to draw with, and you should find that most of the text editing features from PabloDraw
+are carried over to this editor. The editor is still a work in progress, but anyone who wants to try using it is
+also encouraged to [https://github.com/christiansacks/moebius/issues log feature requests and bugs] on the
+project's GitHub page.
+
+== Download packages ==
+
+Packaged binaries are available through Github [https://github.com/christiansacks/moebius/releases Releases] or
+from the direct links below:
+
+* [https://github.com/christiansacks/moebius/releases/latest/download/Moebius.dmg MacOS]
+* [https://github.com/christiansacks/moebius/releases/latest/download/Moebius.Setup.exe Windows Installer]
+* [https://github.com/christiansacks/moebius/releases/latest/download/Moebius.exe Windows Portable]
+* [https://github.com/christiansacks/moebius/releases/latest/download/Moebius.AppImage Linux AppImage]
+
+== Installation & building ==
+
+<pre>
+git clone git@github.com:christiansacks/moebius.git
+npm install
+npm start
+</pre>
+
+Moebius² packages can be built easily with [https://github.com/electron-userland/electron-builder
+electron-builder]. Note that a build for MacOS must be made on MacOS.
+
+<pre>
+npm run-script build-mac
+npm run-script build-win
+npm run-script build-linux
+</pre>
+
+== Moebius² Server ==
+
+Moebius² features collaboration by multiple users on the same canvas through a server instance. Users connect to a
+server which allows them to draw and chat. The server will also create hourly backups.
+
+To start a server:
+
+<pre>
+git clone git@github.com:christiansacks/moebius.git
+npm install
+node ./server.js
+</pre>
+
+This will start a server with default settings. In this case a password will not be set and any value entered in
+the Moebius² client will be accepted by the server. The server runs by default on port 8000. Moebius² clients can
+modify the port by entering the server as <code>hostname:port</code>.
+
+The following parameters can be set:
+
+{| class="wikitable"
+! Parameter !! Description
+|-
+| <code>--file=filename.ans</code> || Load an initial ANSI file after the server starts
+|-
+| <code>--pass=password</code> || Set a server password which clients need to provide to log on
+|-
+| <code>--server_port=8000</code> || Set the server port (default: 8000)
+|-
+| <code>--web</code> and <code>--web_port=80</code> || Run the webserver for external viewing (default port: 80).
+Enables live preview of the canvas and SAUCE information in a browser at
+<code><nowiki>http://hostname.tld:web_port</nowiki></code>
+|-
+| <code>--path=pathname</code> || Set a path for this server; users and web viewers connect to
+<code>hostname.tld/path</code>
+|-
+| <code>--quiet=true/false</code> || Suppress console output after the server has started
+|-
+| <code>--discord=url</code> || Mirror server joins and chat activity via a
+[https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks Discord Webhook]
+|}
+
+=== Running the server with Docker ===
+
+If you'd rather not install Node.js on your host, a Docker image is provided.
+
+'''Prerequisites:''' [https://docs.docker.com/engine/install/ Docker Engine] with the Compose plugin (included in
+Docker Desktop).
+
+'''1. Create a data directory''' alongside the repo — this is where your <code>.mob</code> or <code>.ans</code>
+file lives and persists across container restarts:
+
+<pre>
+mkdir data
+</pre>
+
+'''2. Configure''' by creating a <code>.env</code> file (all values are optional — defaults are shown):
+
+<pre>
+MOEBIUS_PASS=yourpassword       # leave blank for open access
+MOEBIUS_FILENAME=server.mob     # file to serve (created automatically if missing)
+MOEBIUS_PORT=8000               # WebSocket port
+MOEBIUS_COLUMNS=80              # canvas width  (new files only)
+MOEBIUS_ROWS=25                 # canvas height (new files only)
+DATA_DIR=./data                 # path to your data directory
+</pre>
+
+'''3. Build and start:'''
+
+<pre>
+docker compose up -d --build
+</pre>
+
+The first run builds the image; subsequent starts are instant. To follow logs:
+
+<pre>
+docker compose logs -f
+</pre>
+
+'''4. Connect from Moebius²''' via '''Network → Connect to Server''' and enter <code>yourhost:8000</code>.
+
+To stop:
+
+<pre>
+docker compose down
+</pre>
+
+== Acknowledgements ==
+
+* Uses modified Google's Material Icons — https://material.io/icons/
+* Contains ANSI art by Alpha King (Blocktronics), Filth (Blocktronics) and burps (FUEL)
+* Included fonts:
+** Topaz originally appeared in Amiga Workbench, courtesy of Commodore Int.
+** P0t-NOoDLE appears courtesy of Leo 'Nudel' Davidson
+** mO'sOul appears courtesy of Desoto/Mo'Soul
+
+== License ==
+
+Copyright 2022 Andy Herbert and 2026 Christian Sacks
+
+Licensed under the [https://github.com/christiansacks/moebius/blob/master/LICENSE.txt Apache License, version 2.0].
+
+== Links ==
+
+* Moebius homepage: https://blocktronics.github.io/moebius/
+* SAUCE specification: http://www.acid.org/info/sauce/sauce.htm
+* How-to's
+** [Moebius² ANSImations](https://wiki.erb.pw/mw/index.php?title=Moebius²_Animations)
+** [Moebius² TheDraw Fonts](https://wiki.erb.pw/mw/index.php?title=Moebius²_TheDraw_Fonts)
+** [Moebius² Layers](https://wiki.erb.pw/mw/index.php?title=Moebius²_Layers)
+
+[[Category:Moebius²]][[Category:ANSI Art]]
