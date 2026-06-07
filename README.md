@@ -106,3 +106,4 @@ Licensed under the [Apache License, version 2.0](https://github.com/christiansac
 * How-to's
   * [Moebius² ANSImations](https://wiki.erb.pw/mw/index.php?title=Moebius²_Animations)
   * [Moebius² TheDraw Fonts](https://wiki.erb.pw/mw/index.php?title=Moebius²_TheDraw_Fonts)
+  * [Moebius² Layers](https://wiki.erb.pw/mw/index.php?title=Moebius²_Layers)
