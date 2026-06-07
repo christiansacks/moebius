@@ -103,3 +103,6 @@ Licensed under the [Apache License, version 2.0](https://github.com/christiansac
 ## Links
 * Moebius homepage: [https://blocktronics.github.io/moebius/](https://blocktronics.github.io/moebius/)
 * SAUCE: [http://www.acid.org/info/sauce/sauce.htm](http://www.acid.org/info/sauce/sauce.htm)
+* How-to's
+  * [Moebius² ANSImations](https://wiki.erb.pw/mw/index.php?title=Moebius²_Animations)
+  * [Moebius² TheDraw Fonts](https://wiki.erb.pw/mw/index.php?title=Moebius²_TheDraw_Fonts)
