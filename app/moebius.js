@@ -2,6 +2,8 @@ const electron = require("electron");
 const path     = require("path");
 const fs       = require("fs");
 
+fs.appendFileSync("C:\\moebius_timing.txt", `P start: ${Date.now()} pid:${process.pid}\n`);
+
 // Resolve any file arguments now, while the process is still lightweight.
 const _initial_files = process.argv.slice(1).reduce((acc, arg) => {
     if (arg.startsWith("-")) return acc;
@@ -21,9 +23,12 @@ if (process.platform === "win32") {
 }
 
 // Become the single instance, or hand off to the existing one and exit immediately.
+fs.appendFileSync("C:\\moebius_timing.txt", `P before-lock: ${Date.now()} pid:${process.pid}\n`);
 if (!electron.app.requestSingleInstanceLock({files: _initial_files})) {
+    fs.appendFileSync("C:\\moebius_timing.txt", `P2 exiting: ${Date.now()} pid:${process.pid}\n`);
     electron.app.exit(0);
 }
+fs.appendFileSync("C:\\moebius_timing.txt", `P1 lock-acquired: ${Date.now()} pid:${process.pid}\n`);
 
 // ── Primary instance — load everything else now ───────────────────────────────
 const prefs = require("./prefs");
@@ -147,7 +152,9 @@ function check_if_file_is_already_open(file) {
 
 async function open_file(file) {
     if (check_if_file_is_already_open(file)) return;
+    fs.appendFileSync("C:\\moebius_timing.txt", `P1 open_file start: ${Date.now()}\n`);
     const win = await new_document_window();
+    fs.appendFileSync("C:\\moebius_timing.txt", `P1 window ready: ${Date.now()}\n`);
     win.send("open_file", file);
 }
 
@@ -432,6 +439,7 @@ if (darwin) {
 // additionalData carries the pre-resolved file list from the secondary process;
 // fall back to argv parsing for any older builds that don't send it.
 electron.app.on("second-instance", (event, argv_new, working_dir, additionalData) => {
+    fs.appendFileSync("C:\\moebius_timing.txt", `P1 second-instance fired: ${Date.now()}\n`);
     const files = (additionalData && Array.isArray(additionalData.files) && additionalData.files.length > 0)
         ? additionalData.files
         : argv_new.slice(1).reduce((acc, arg) => {
