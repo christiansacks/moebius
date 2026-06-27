@@ -12,8 +12,13 @@ const _initial_files = process.argv.slice(1).reduce((acc, arg) => {
     return acc;
 }, []);
 
-// Prevent the GPU subprocess from starting in a process that is about to exit.
-if (process.platform === "win32") electron.app.disableHardwareAcceleration();
+// On Windows, prevent GPU cache file lock contention between instances.
+// These must run before requestSingleInstanceLock so P2 also applies them.
+if (process.platform === "win32") {
+    electron.app.disableHardwareAcceleration();
+    electron.app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
+    electron.app.commandLine.appendSwitch("disable-gpu-program-cache");
+}
 
 // Become the single instance, or hand off to the existing one and exit immediately.
 if (!electron.app.requestSingleInstanceLock({files: _initial_files})) {
