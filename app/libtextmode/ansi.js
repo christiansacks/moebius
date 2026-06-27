@@ -639,7 +639,7 @@ function encode_as_ansi_extended(doc, save_without_sauce) {
             output.push(code);
         }
 
-        if (last_col < doc.columns - 1) output.push(13, 10);
+        if (row < doc.rows - 1) output.push(13, 10);
     }
 
     const bytes = new Uint8Array(output);
@@ -790,7 +790,6 @@ function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
         if (code == 32 && bg == 0 && bg_idx === undefined && !bg_rgb) {
             for (let j = i + 1; j < doc.data.length; j++) {
                 if (j % doc.columns == 0) {
-                    if (!utf8) output.push(13, 10);
                     i = j - 1;
                     break;
                 }
@@ -809,6 +808,7 @@ function encode_as_ansi(doc, save_without_sauce, {utf8 = false} = {}) {
         } else {
             output.push(code);
         }
+        if (!utf8 && i % doc.columns === doc.columns - 1 && i < doc.data.length - 1) output.push(13, 10);
     }
     const bytes = new Uint8Array(output);
     if (utf8) return bytes;
