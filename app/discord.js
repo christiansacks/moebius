@@ -1,9 +1,9 @@
 const DiscordRPC = require("discord-rpc");
 const client_id = "586883052379308062";
-DiscordRPC.register(client_id);
 let rpc;
 
 function login() {
+    DiscordRPC.register(client_id);
     rpc = new DiscordRPC.Client({transport: "ipc"});
     rpc.on("ready", () => {
         rpc.setActivity({details: "Pushing blocks", largeImageKey: "default", largeImageText: "Moebius"});

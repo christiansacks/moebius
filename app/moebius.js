@@ -1,9 +1,33 @@
-const prefs = require("./prefs");
 const electron = require("electron");
+const path     = require("path");
+const fs       = require("fs");
+
+// Resolve any file arguments now, while the process is still lightweight.
+const _initial_files = process.argv.slice(1).reduce((acc, arg) => {
+    if (arg.startsWith("-")) return acc;
+    try {
+        const resolved = path.isAbsolute(arg) ? arg : path.join(process.cwd(), arg);
+        if (fs.statSync(resolved).isFile()) acc.push(resolved);
+    } catch (_) {}
+    return acc;
+}, []);
+
+// Prevent the GPU subprocess from starting in a process that is about to exit.
+if (process.platform === "win32") electron.app.disableHardwareAcceleration();
+
+// Become the single instance, or hand off to the existing one and exit immediately.
+if (!electron.app.requestSingleInstanceLock({files: _initial_files})) {
+    electron.app.exit(0);
+}
+
+// ── Primary instance — load everything else now ───────────────────────────────
+const prefs = require("./prefs");
 const window = require("./window");
 const menu = require("./menu");
 const touchbar = require("./touchbar");
-const path = require("path");
+const discord = require("./discord");
+const os = require("os");
+const argv = require("minimist")(process.argv);
 const docs = {};
 let last_win_pos;
 const darwin = (process.platform == "darwin");
@@ -12,10 +36,6 @@ const linux = (process.platform == "linux");
 const frameless = darwin ? {frame: false, titleBarStyle: "hiddenInset"} : {frame: true};
 let prevent_splash_screen_at_startup = false;
 let splash_screen;
-const discord = require("./discord");
-const fs = require("fs");
-const os = require("os");
-const argv = require("minimist")(process.argv);
 let last_open_dir = prefs.get("last_open_dir") || null;
 
 function cleanup(id) {
@@ -403,34 +423,25 @@ if (darwin) {
     });
 }
 
-// Single-instance lock: route subsequent launches into this process instead of
-// spawning a new Electron process. Eliminates the Windows multi-instance startup
-// delay caused by competing locks on the GPU cache / user-data directory.
-// Also benefits Linux/macOS by reducing memory and process startup overhead.
-const got_single_instance_lock = electron.app.requestSingleInstanceLock();
-if (!got_single_instance_lock) {
-    electron.app.quit();
-} else {
-    electron.app.on("second-instance", (event, argv_new, working_dir) => {
-        // A second launch was attempted — open its files in this process instead.
-        // Bypass minimist: on Windows, packaged-app paths are absolute and may be
-        // preceded by Squirrel/Electron internal flags that confuse minimist parsing.
-        const files = argv_new.slice(1).reduce((acc, arg) => {
+// Route subsequent launches into this process instead of spawning a new one.
+// additionalData carries the pre-resolved file list from the secondary process;
+// fall back to argv parsing for any older builds that don't send it.
+electron.app.on("second-instance", (event, argv_new, working_dir, additionalData) => {
+    const files = (additionalData && Array.isArray(additionalData.files) && additionalData.files.length > 0)
+        ? additionalData.files
+        : argv_new.slice(1).reduce((acc, arg) => {
             if (arg.startsWith("-")) return acc;
             const resolved = path.isAbsolute(arg) ? arg : path.join(working_dir, arg);
             try { if (fs.statSync(resolved).isFile()) acc.push(resolved); } catch (_) {}
             return acc;
         }, []);
-        if (files.length > 0) {
-            files.forEach((file) => open_file(file));
-        } else {
-            // No resolvable file arg — open a blank document only if no file-like
-            // args were present at all (i.e. user launched the app, not a file).
-            const had_file_args = argv_new.slice(1).some(a => !a.startsWith("-") && a !== ".");
-            if (!had_file_args) new_document();
-        }
-    });
-}
+    if (files.length > 0) {
+        files.forEach((file) => open_file(file));
+    } else {
+        const had_file_args = argv_new.slice(1).some(a => !a.startsWith("-") && a !== ".");
+        if (!had_file_args) new_document();
+    }
+});
 
 electron.app.on("ready", (event) => {
     const files = process.argv.slice(1).reduce((acc, arg) => {
